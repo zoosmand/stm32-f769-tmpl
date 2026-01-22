@@ -28,12 +28,15 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_hal.h"
-#include <string.h>
-#include <stdbool.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
+#include <stdbool.h>
+#include "common.h"
+#include "display.h"
+#include "fmc.h"
+#include "otm8009a.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -369,7 +372,8 @@ void Error_Handler(void);
 #define ARDUINO_MOSI_PWM_D11_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+#define DSI_RESET_Pin       GPIO_PIN_15
+#define DSI_RESET_Port      GPIOJ
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
