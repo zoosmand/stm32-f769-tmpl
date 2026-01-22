@@ -34,9 +34,10 @@ extern "C" {
 #include <string.h>
 #include <stdbool.h>
 #include "common.h"
-#include "display.h"
+#include "fonts.h"
 #include "fmc.h"
 #include "otm8009a.h"
+#include "display.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

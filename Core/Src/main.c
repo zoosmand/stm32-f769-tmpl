@@ -203,43 +203,22 @@ int main(void)
   
   MX_DSIHOST_DSI_Init();
   
-  
   MX_LTDC_Init();
   
   HAL_DSI_Start(&hdsi);
   
-  OTM8009A_Init(OTM8009A_FORMAT_RGB888);
+  if (OTM8009A_Init(OTM8009A_FORMAT_RGB888) != HAL_OK) Error_Handler();
 
   MX_LWIP_Init();
 
-  if (HAL_LTDC_ConfigLayer(&hltdc, &layer1, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  if (HAL_LTDC_ConfigLayer(&hltdc, &layer1, 0) != HAL_OK) Error_Handler();
+  if (HAL_LTDC_ConfigLayer(&hltdc, &layer2, 1) != HAL_OK) Error_Handler();
 
-  if (HAL_LTDC_ConfigLayer(&hltdc, &layer2, 1) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  if (Display_FillLayer(&layer1, (ARGB8888_Lightblue | 0xff000000))) Error_Handler();
+  if (Display_FillLayer(&layer2, (ARGB8888_Apple | 0xff000000))) Error_Handler();
 
+  if (Display_TestSimplePrimitives(&layer1)) Error_Handler();
 
-
-
-  FillLayer(&layer1, (ARGB8888_Lightblue | 0xff000000));
-  FillLayer(&layer2, (ARGB8888_Apple | 0xff000000));
-
-
-  FillRectangle(&layer2, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000));
-
-  DrawPixel(&layer1, 10, 10, (ARGB8888_Yellow | 0xff000000));
-
-
-  DrawVLine(&layer1, 200, 320, 100, 3, (ARGB8888_Apple | 0xff000000));
-  DrawHLine(&layer1, 200, 320, 100, 2, (ARGB8888_Apple | 0xff000000));
-
-
-
-  DrawRectangle(&layer1, 350, 250, 104, 69, 4, (ARGB8888_Red | 0xff000000));
 
   /* USER CODE END 2 */
 

@@ -44,7 +44,35 @@
   do { const char *p = s; while (*p) ITM_SendChar(*p++); } while (0)
 
 
-  
+
+
+/**
+ * @brief   Display device type definition struct.
+ */
+typedef struct {
+  FunctionalState       Lock;
+  uint16_t              Model;
+  uint16_t              Width;
+  uint16_t              Height;
+  uint32_t*             Device;
+  uint16_t*             PixBuf;
+  uint16_t              PixBufSize;
+  HAL_StatusTypeDef     (*Callback)(uint32_t*);
+} Display_TypeDef;
+
+
+typedef struct {
+  uint8_t               Width;
+  uint8_t               Height;
+  uint16_t              Color;
+  uint16_t              Bgcolor;
+  uint16_t              BytesPerGlif;
+  uint8_t*              Font;
+} Font_TypeDef;
+
+
+
+
 /* Exported macro ------------------------------------------------------------*/
 #define FLAG_SET(registry, flag)        SET_BIT(registry, (1 << flag))
 #define FLAG_CLR(registry, flag)        CLEAR_BIT(registry, (1 << flag))

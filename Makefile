@@ -155,7 +155,11 @@ Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_ltdc.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_ltdc_ex.c \
 Core/Src/fmc.c \
 Core/Src/display.c \
-Core/Src/otm8009a.c
+Core/Src/otm8009a.c \
+Core/Src/dot_5x7.c \
+Core/Src/dot_10x14.c \
+Core/Src/dot_15x21.c \
+Core/Src/dot_20x28.c
 
 
 # ASM sources
