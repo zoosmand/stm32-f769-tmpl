@@ -52,11 +52,8 @@
 typedef struct {
   FunctionalState       Lock;
   uint16_t              Model;
-  uint16_t              Width;
-  uint16_t              Height;
-  uint32_t*             Device;
-  uint16_t*             PixBuf;
-  uint16_t              PixBufSize;
+  LTDC_LayerCfgTypeDef* Layer1;  
+  LTDC_LayerCfgTypeDef* Layer2;  
   HAL_StatusTypeDef     (*Callback)(uint32_t*);
 } Display_TypeDef;
 
@@ -64,9 +61,9 @@ typedef struct {
 typedef struct {
   uint8_t               Width;
   uint8_t               Height;
-  uint16_t              Color;
-  uint16_t              Bgcolor;
-  uint16_t              BytesPerGlif;
+  uint32_t              Color;
+  uint32_t              Bgcolor;
+  uint32_t              BytesPerGlif;
   uint8_t*              Font;
 } Font_TypeDef;
 

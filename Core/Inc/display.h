@@ -12,7 +12,7 @@
 
 HAL_StatusTypeDef Display_TestSimplePrimitives(LTDC_LayerCfgTypeDef*);
 
-
+void Display_Run(Display_TypeDef*);
 
 #ifdef __cplusplus
 }

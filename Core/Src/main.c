@@ -219,6 +219,12 @@ int main(void)
 
   if (Display_TestSimplePrimitives(&layer1)) Error_Handler();
 
+  static Display_TypeDef display = {
+    .Model    = 8009,
+    .Lock     = DISABLE,
+    .Layer1   = &layer1,
+    .Layer2   = &layer2,
+  };
 
   /* USER CODE END 2 */
 
@@ -227,6 +233,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+
+    Display_Run(&display);
     MX_LWIP_Process();
     /* USER CODE BEGIN 3 */
   }
