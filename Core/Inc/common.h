@@ -38,7 +38,13 @@
 
 /* Private macro -------------------------------------------------------------*/
 
+#define SWO_PrintChar(c) ITM_SendChar(c)
 
+#define SWO_PrintString(s) \
+  do { const char *p = s; while (*p) ITM_SendChar(*p++); } while (0)
+
+
+  
 /* Exported macro ------------------------------------------------------------*/
 #define FLAG_SET(registry, flag)        SET_BIT(registry, (1 << flag))
 #define FLAG_CLR(registry, flag)        CLEAR_BIT(registry, (1 << flag))

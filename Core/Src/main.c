@@ -37,13 +37,6 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define SWO_PrintChar(c) ITM_SendChar(c)
-
-#define SWO_PrintString(s) \
-  do { const char *p = s; while (*p) ITM_SendChar(*p++); } while (0)
-
-
-// static void MPU_Config_Framebuffer(void);
 
 /* USER CODE END PM */
 
@@ -122,34 +115,6 @@ LTDC_LayerCfgTypeDef layer2 = {
 
 
 
-
-
-// static void MPU_Config_Framebuffer(void) {
-//   MPU_Region_InitTypeDef MPU_InitStruct = {0};
-
-//   HAL_MPU_Disable();
-
-//   /* Framebuffer SDRAM region: 0xC0000000, 8MB */
-//   MPU_InitStruct.Enable           = MPU_REGION_ENABLE;
-//   MPU_InitStruct.Number           = MPU_REGION_NUMBER1;   // keep REGION0 for ETH
-//   MPU_InitStruct.BaseAddress      = SDRAM_START_ADDR;
-//   MPU_InitStruct.Size             = MPU_REGION_SIZE_8MB;
-//   MPU_InitStruct.SubRegionDisable = 0x00;
-//   MPU_InitStruct.TypeExtField     = MPU_TEX_LEVEL0;
-//   MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
-//   MPU_InitStruct.DisableExec      = MPU_INSTRUCTION_ACCESS_DISABLE;
-
-//   /* Key attributes for LTDC/DMA2D */
-//   MPU_InitStruct.IsShareable      = MPU_ACCESS_NOT_SHAREABLE;
-//   MPU_InitStruct.IsCacheable      = MPU_ACCESS_NOT_CACHEABLE;
-//   MPU_InitStruct.IsBufferable     = MPU_ACCESS_NOT_BUFFERABLE;
-
-//   HAL_MPU_ConfigRegion(&MPU_InitStruct);
-
-//   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
-// }
-
-
 static void ITM_Init(void)
 {
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
@@ -179,25 +144,15 @@ int _write(int file, char *ptr, int len)
 
 
 // GPIO
-
 // FMC + SDRAM init
-
 // MPU framebuffer region
-
 // Enable caches
-
 // LTDC init (clocked, disabled)
-
 // DSI init (PLL + host)
-
 // OTM8009A_Init() (DSI command mode!)
-
 // DSI video mode config
-
 // HAL_DSI_Start()
-
 // Configure LTDC layers
-
 // Reload + enable LTDC
 
 

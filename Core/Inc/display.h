@@ -24,9 +24,8 @@ typedef struct {
 extern SDRAM_HandleTypeDef hsdram1;
 
 /* Display defines -----------------------------------------------------------*/
-//////////////////////////////////////////////////////////////////////////
-// #define _PORTRAIT_
 
+// #define _PORTRAIT_
 #ifndef _PORTRAIT_
   #define _LANDSCAPE_
 #endif
@@ -115,9 +114,9 @@ HAL_StatusTypeDef DrawHLine(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t,
 
 HAL_StatusTypeDef DrawRectangle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
-void DrawSymbol(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, uint8_t);
+HAL_StatusTypeDef DrawSymbol(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, uint8_t);
 
-void PrintString(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, const char*, uint8_t);
+HAL_StatusTypeDef PrintString(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, const char*, uint8_t);
 
 
 

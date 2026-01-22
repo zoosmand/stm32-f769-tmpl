@@ -159,9 +159,9 @@
 extern DSI_HandleTypeDef hdsi;
 
 /* Exported functions prototypes ---------------------------------------------*/
-void OTM8009A_Init(uint32_t colorSchema);
-void OTM8009A_DisplayOn(void);
-void OTM8009A_SetBrightness(uint8_t val);
+HAL_StatusTypeDef OTM8009A_Init(uint32_t);
+HAL_StatusTypeDef OTM8009A_DisplayOn(void);
+HAL_StatusTypeDef OTM8009A_SetBrightness(uint8_t);
 
 
 #ifdef __cplusplus

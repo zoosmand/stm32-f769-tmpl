@@ -186,16 +186,16 @@ HAL_StatusTypeDef FillRectangle(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_
   * @param  pos: position in the sysmbol's array
   * @retval None
   */
-void DrawSymbol(LTDC_LayerCfgTypeDef* layer, uint16_t* x, uint16_t* y, const Font_TypeDef *font, uint8_t ch) {
+HAL_StatusTypeDef DrawSymbol(LTDC_LayerCfgTypeDef* layer, uint16_t* x, uint16_t* y, const Font_TypeDef *font, uint8_t ch) {
   if ((ch > 126) || (ch < 32)) {
     if (ch == 176) ch = 95;
-    else return;
+    else return HAL_ERROR;
   } else {
     ch -= 32;
   }
 
 
-
+  return HAL_OK;
 }
 
 
@@ -217,7 +217,8 @@ void DrawSymbol(LTDC_LayerCfgTypeDef* layer, uint16_t* x, uint16_t* y, const Fon
   * @param  wrap: wrap or not wrap to the next line 
   * @retval None
   */
-void PrintString(LTDC_LayerCfgTypeDef* layer, uint16_t *x, uint16_t *y, const Font_TypeDef *font, const char *buf, uint8_t wrap) {
+HAL_StatusTypeDef PrintString(LTDC_LayerCfgTypeDef* layer, uint16_t *x, uint16_t *y, const Font_TypeDef *font, const char *buf, uint8_t wrap) {
 
+  return HAL_OK;
 }
 
