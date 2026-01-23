@@ -191,6 +191,13 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 1 */
 }
 
+
+void LTDC_IRQHandler(void)
+{
+    HAL_LTDC_IRQHandler(&hltdc);
+}
+
+
 /******************************************************************************/
 /* STM32F7xx Peripheral Interrupt Handlers                                    */
 /* Add here the Interrupt Handlers for the used peripherals.                  */
