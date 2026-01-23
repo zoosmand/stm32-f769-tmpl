@@ -209,15 +209,14 @@ int main(void)
   
   if (OTM8009A_Init(OTM8009A_FORMAT_RGB888) != HAL_OK) Error_Handler();
 
-  MX_LWIP_Init();
-
+  
   if (HAL_LTDC_ConfigLayer(&hltdc, &layer1, 0) != HAL_OK) Error_Handler();
   if (HAL_LTDC_ConfigLayer(&hltdc, &layer2, 1) != HAL_OK) Error_Handler();
-
+  
   if (Display_FillLayer(&layer1, (ARGB8888_Lightblue | 0xff000000))) Error_Handler();
   if (Display_FillLayer(&layer2, (ARGB8888_Apple | 0xff000000))) Error_Handler();
-
-  // if (Display_TestSimplePrimitives(&layer2)) Error_Handler();
+  
+  MX_LWIP_Init();
 
   static Display_TypeDef display = {
     .Model    = 8009,
@@ -499,8 +498,8 @@ static void MX_LTDC_Init(void)
   hltdc.Init.TotalHeigh           = DISPLAY_WIDTH + _VSA_ + _VBP_ + _VFP_ - 1;
   hltdc.Init.TotalWidth           = DISPLAY_HEIGHT + _HSA_ + _HBP_ + _HFP_ - 1;
 
-  hltdc.Init.Backcolor.Blue = 0x00;
-  hltdc.Init.Backcolor.Green = 0x00;
+  hltdc.Init.Backcolor.Blue = 0xff;
+  hltdc.Init.Backcolor.Green = 0xff;
   hltdc.Init.Backcolor.Red = 0xff;
 
   if (HAL_LTDC_Init(&hltdc) != HAL_OK)
