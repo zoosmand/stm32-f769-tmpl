@@ -89,7 +89,7 @@ void Display_Run(Display_TypeDef* dev) {
     // Display_DrawVLine(dev->Layer2, 200, 220, 100, 3, (ARGB8888_Black | 0xff000000));
 
     Display_DrawCircle(dev->Layer1, 100, 300, 50, 2, (ARGB8888_Blue | 0xff000000));
-    Display_FillCircle(dev->Layer1, 100, 200, 50, (ARGB8888_Blue | 0xff000000));
+    Display_FillCircle(dev->Layer2, 100, 200, 50, (ARGB8888_Blue | 0xff000000));
 
   }
 }
