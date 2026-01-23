@@ -502,11 +502,16 @@ static void MX_LTDC_Init(void)
   hltdc.Init.Backcolor.Blue = 0x00;
   hltdc.Init.Backcolor.Green = 0x00;
   hltdc.Init.Backcolor.Red = 0xff;
+
   if (HAL_LTDC_Init(&hltdc) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN LTDC_Init 2 */
+  hltdc.Instance->IER |= LTDC_IER_LIE;
+  hltdc.Instance->LIPCR = 0;
+  HAL_NVIC_SetPriority(LTDC_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(LTDC_IRQn);
 
   /* USER CODE END LTDC_Init 2 */
 

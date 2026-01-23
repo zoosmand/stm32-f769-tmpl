@@ -17,6 +17,8 @@
 
 
 
+volatile uint8_t vblank_ready = 0;
+
 /*
  * @brief Constant tables of register settings used to transmit DSI
  * command packets as power up initialization sequence of the KoD LCD (OTM8009A LCD Driver)
@@ -554,49 +556,7 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(LTDC_LayerCfgTypeDef*
 
 // --------------------------------------------------------------------------
 
-// __STATIC_INLINE uint32_t prepare_glyph(LTDC_LayerCfgTypeDef* layer, Font_TypeDef* f, char ch, uint32_t tp, uint32_t bi) {
 
-//   // shift the glig index
-//   if ((ch < 32) || (ch > 126)) {
-//     if (ch == 176) ch = 95;
-//     else ch = 32;
-//   }
-//   ch -= 32;
-
-//   const uint8_t *glyph = f->Font + (ch * f->BytesPerGlif);
-
-//   uint32_t pixel_count = 0;
-
-//   for (uint32_t byte = 0; byte < f->BytesPerGlif; byte++) {
-//     uint8_t bits = glyph[byte];
-
-//     for (uint8_t bit = 0; bit < 8; bit++) {
-//       if (pixel_count >= tp) break;
-//       dev->PixBuf[bi++] = (bits & 0x01) ? f->Color : f->Bgcolor;
-//       bits >>= 1;
-//       pixel_count++;
-//     }
-//   }
-//   return bi;
-// }
-
-
-
-/**
-  * @brief  Draws symbol on a layer of display
-  * @param  layer: number of layer
-  * @param  x: pointer to x coordinate
-  * @param  y: pointer to y coordinate 
-  * @param  font: pointer to font structure containes font paramenters:
-  *               - width of a symbol
-  *               - height of a symbol
-  *               - color of a symbol
-  *               - background color behind a symbol
-  *               - flag - use or don't use background color
-  *               - array of symbols
-  * @param  pos: position in the sysmbol's array
-  * @retval None
-  */
 HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef* layer, uint16_t* x, uint16_t* y, const Font_TypeDef *f, uint8_t ch) {
   if ((ch > 126) || (ch < 32)) {
     if (ch == 176) ch = 95;
@@ -604,57 +564,61 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef*
   } else {
     ch -= 32;
   }
-
+  
   if ((*x + f->Width - 1) >= layer->ImageHeight) return HAL_ERROR;
   if ((*y + f->Height - 1) >= layer->ImageWidth) return HAL_ERROR;
-
+  
   const uint8_t *glyph = f->Font + (ch * f->BytesPerGlif);
-
+  
   uint32_t pixel_count = 0;
-
+  
   for (uint32_t iw = 0; iw < f->Width ; iw++) {
-
+    
     if (SDRAM_BusyStatusCheck(&hsdram1) != HAL_OK) return HAL_ERROR;
     __O uint32_t* fb = (uint32_t*)(GET_POSITIOIN_ADDRESS(layer, (*x + (iw * 1)), *y));
     
     for (uint16_t ih = 0; ih < f->Height; ih += 8) {
       uint8_t bits = glyph[pixel_count++];
-
+      
       for (uint8_t bit = 0; bit < 8; bit++) {
         *fb++ = (bits & 0x01) ? f->Color : f->Bgcolor;
         bits >>= 1;
       }
     }
   }
-
   *x += f->Width;
-
+  
   return HAL_OK;
 }
 
 
 
 
-/**
-  * @brief  Prints a string on a layer of display
-  * @param  layer: number of layer
-  * @param  x: pointer to x coordinate
-  * @param  y: pointer to y coordinate 
-  * @param  font: pointer to font structure containes font paramenters:
-  *               - width of a symbol
-  *               - height of a symbol
-  *               - color of a symbol
-  *               - background color behind a symbol
-  *               - flag - use or not use background color
-  *               - array of symbols
-  * @param  buf: pointer to buffer with a string
-  * @param  wrap: wrap or not wrap to the next line 
-  * @retval None
-  */
+// --------------------------------------------------------------------------
+
+__STATIC_INLINE void DCache_CleanByAddr_32Aligned(void *addr, size_t bytes) {
+  const uint32_t CACHE_LINE = 32;
+  
+  uintptr_t start = (uintptr_t)addr;
+  uintptr_t end   = start + bytes;
+  
+  uintptr_t start_aligned = start & ~(CACHE_LINE - 1);
+  uintptr_t end_aligned   = (end + (CACHE_LINE - 1)) & ~(CACHE_LINE - 1);
+  
+  SCB_CleanDCache_by_Addr((uint32_t*)start_aligned, (int32_t)(end_aligned - start_aligned));
+  __DSB();
+  __ISB();
+}
+
+
+
+
+
+// --------------------------------------------------------------------------
+
 HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef* layer, uint16_t *x, uint16_t *y, const Font_TypeDef *f, const char *str, bool wrap) {
 
   uint16_t char_count = 0;
-  uint32_t buf_idx = 0;
 
   while (str[char_count++] != '\n') {
     if (char_count > 64) break;
@@ -662,11 +626,25 @@ HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef
 
   char_count--;
 
-  for (uint16_t ic = 0; ic < char_count; ic++) {
+  while (!vblank_ready) __WFI();
+  vblank_ready = 0;
 
+  DCache_CleanByAddr_32Aligned((void*)layer->FBStartAdress, layer->ImageWidth * layer->ImageHeight * 4);
+  DCache_CleanByAddr_32Aligned((void*)layer->FBStartAdress, layer->ImageWidth * layer->ImageHeight * 4);
+
+  for (uint16_t ic = 0; ic < char_count; ic++) {
     Display_DrawSymbol(layer, x, y, f, str[ic]);
   }
 
   return HAL_OK;
 }
 
+
+void HAL_LTDC_LineEventCallback(LTDC_HandleTypeDef *hltdc) {
+  if (hltdc->Instance == LTDC) {
+    /* We are now in VBlank */
+    vblank_ready = 1;
+    /* Re-arm the interrupt */
+    HAL_LTDC_ProgramLineEvent(hltdc, DISPLAY_HEIGHT - 1);
+  }
+}
