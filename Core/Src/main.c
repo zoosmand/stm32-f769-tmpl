@@ -209,7 +209,7 @@ int main(void)
   
   if (OTM8009A_Init(OTM8009A_FORMAT_RGB888) != HAL_OK) Error_Handler();
 
-  MX_LWIP_Init();
+  // MX_LWIP_Init();
 
   if (HAL_LTDC_ConfigLayer(&hltdc, &layer1, 0) != HAL_OK) Error_Handler();
   if (HAL_LTDC_ConfigLayer(&hltdc, &layer2, 1) != HAL_OK) Error_Handler();
@@ -235,7 +235,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     Display_Run(&display);
-    MX_LWIP_Process();
+    // MX_LWIP_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

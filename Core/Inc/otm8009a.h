@@ -253,8 +253,11 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(LTDC_LayerCfgTypeD
 
 HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, uint8_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, const char*, uint8_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, const char*, bool);
 
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+
+HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint32_t);
 
 #ifdef __cplusplus
 }

@@ -537,6 +537,50 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(LTDC_LayerCfgTypeD
 
 
 
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_t y, uint16_t r, uint16_t t, uint32_t color) {
+
+  return HAL_OK;
+}
+
+
+
+
+HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_t y, uint16_t r, uint32_t color) {
+
+  return HAL_OK;
+}
+
+
+
+// --------------------------------------------------------------------------
+
+// __STATIC_INLINE uint32_t prepare_glyph(LTDC_LayerCfgTypeDef* layer, Font_TypeDef* f, char ch, uint32_t tp, uint32_t bi) {
+
+//   // shift the glig index
+//   if ((ch < 32) || (ch > 126)) {
+//     if (ch == 176) ch = 95;
+//     else ch = 32;
+//   }
+//   ch -= 32;
+
+//   const uint8_t *glyph = f->Font + (ch * f->BytesPerGlif);
+
+//   uint32_t pixel_count = 0;
+
+//   for (uint32_t byte = 0; byte < f->BytesPerGlif; byte++) {
+//     uint8_t bits = glyph[byte];
+
+//     for (uint8_t bit = 0; bit < 8; bit++) {
+//       if (pixel_count >= tp) break;
+//       dev->PixBuf[bi++] = (bits & 0x01) ? f->Color : f->Bgcolor;
+//       bits >>= 1;
+//       pixel_count++;
+//     }
+//   }
+//   return bi;
+// }
+
+
 
 /**
   * @brief  Draws symbol on a layer of display
@@ -553,7 +597,7 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(LTDC_LayerCfgTypeD
   * @param  pos: position in the sysmbol's array
   * @retval None
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef* layer, uint16_t* x, uint16_t* y, const Font_TypeDef *font, uint8_t ch) {
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef* layer, uint16_t* x, uint16_t* y, const Font_TypeDef *f, uint8_t ch) {
   if ((ch > 126) || (ch < 32)) {
     if (ch == 176) ch = 95;
     else return HAL_ERROR;
@@ -561,6 +605,29 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef*
     ch -= 32;
   }
 
+  if ((*x + f->Width - 1) >= layer->ImageHeight) return HAL_ERROR;
+  if ((*y + f->Height - 1) >= layer->ImageWidth) return HAL_ERROR;
+
+  const uint8_t *glyph = f->Font + (ch * f->BytesPerGlif);
+
+  uint32_t pixel_count = 0;
+
+  for (uint32_t iw = 0; iw < f->Width ; iw++) {
+
+    if (SDRAM_BusyStatusCheck(&hsdram1) != HAL_OK) return HAL_ERROR;
+    __O uint32_t* fb = (uint32_t*)(GET_POSITIOIN_ADDRESS(layer, (*x + (iw * 1)), *y));
+    
+    for (uint16_t ih = 0; ih < f->Height; ih += 8) {
+      uint8_t bits = glyph[pixel_count++];
+
+      for (uint8_t bit = 0; bit < 8; bit++) {
+        *fb++ = (bits & 0x01) ? f->Color : f->Bgcolor;
+        bits >>= 1;
+      }
+    }
+  }
+
+  *x += f->Width;
 
   return HAL_OK;
 }
@@ -584,7 +651,21 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef*
   * @param  wrap: wrap or not wrap to the next line 
   * @retval None
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef* layer, uint16_t *x, uint16_t *y, const Font_TypeDef *font, const char *buf, uint8_t wrap) {
+HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef* layer, uint16_t *x, uint16_t *y, const Font_TypeDef *f, const char *str, bool wrap) {
+
+  uint16_t char_count = 0;
+  uint32_t buf_idx = 0;
+
+  while (str[char_count++] != '\n') {
+    if (char_count > 64) break;
+  }
+
+  char_count--;
+
+  for (uint16_t ic = 0; ic < char_count; ic++) {
+
+    Display_DrawSymbol(layer, x, y, f, str[ic]);
+  }
 
   return HAL_OK;
 }

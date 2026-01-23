@@ -39,23 +39,23 @@ void Display_Run(Display_TypeDef* dev) {
 
   if (dev->Lock == ENABLE) return;
 
-  // Font_TypeDef font = {
-  //   .Bgcolor      = COLOR_BLUE,
-  //   .Color        = COLOR_LIME,
-  //   .Font         = (uint8_t*)&font_dot_20x28,
-  //   .Height       = 32,
-  //   .Width        = 24,
-  //   .BytesPerGlif = 96,
-  // };
+  Font_TypeDef font = {
+    .Bgcolor      = (ARGB8888_Black | 0xff000000),
+    .Color        = (ARGB8888_Lightblue | 0xff000000),
+    .Font         = (uint8_t*)&font_dot_20x28,
+    .Height       = 32,
+    .Width        = 24,
+    .BytesPerGlif = 96,
+  };
 
-  // Font_TypeDef font2 = {
-  //   .Bgcolor      = COLOR_BLUE,
-  //   .Color        = COLOR_LIME,
-  //   .Font         = (uint8_t*)&font_dot_5x7,
-  //   .Height       = 8,
-  //   .Width        = 6,
-  //   .BytesPerGlif = 6,
-  // };
+  Font_TypeDef font2 = {
+    .Bgcolor      = (ARGB8888_Black | 0xff000000),
+    .Color        = (ARGB8888_Apple | 0xff000000),
+    .Font         = (uint8_t*)&font_dot_5x7,
+    .Height       = 8,
+    .Width        = 6,
+    .BytesPerGlif = 6,
+  };
 
 
   uint32_t tick = HAL_GetTick();
@@ -67,16 +67,22 @@ void Display_Run(Display_TypeDef* dev) {
     
 
 
-    if (step % 2) {
-      if (Display_FillRectangle(dev->Layer1, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return;
-    } else {
-      if (Display_FillRectangle(dev->Layer2, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return;
-    }
+    // if (step % 2) {
+    //   if (Display_FillRectangle(dev->Layer1, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return;
+    // } else {
+    //   if (Display_FillRectangle(dev->Layer2, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return;
+    // }
 
-    // Display_PrintSymbol(dev, 140, 80, &font, '3');
-    // Display_PrintString(dev, 40, 180, &font, "CoroideVO!86728543\n");
+    uint16_t x1 = 140;
+    uint16_t y1 = 80;
+    uint16_t x2 = 140;
+    uint16_t y2 = 120;
+
+    // Display_DrawSymbol(dev->Layer2, &x, &y, &font, '3');
+    // Display_DrawSymbol(dev->Layer2, &x, &y, &font, '4');
+    Display_PrintString(dev->Layer1, &x1, &y1, &font, "CoroideVO!86728543\n", false);
     
-    // Display_PrintString(dev, 40, 86, &font2, "1234567890123456789012345678901234567890123456789012345678901234567890\n");
+    Display_PrintString(dev->Layer2, &x2, &y2, &font2, "1234567890123456789012345678901234567890123456789012345678901234567890\n", false);
 
   }
 }
