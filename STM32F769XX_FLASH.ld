@@ -61,11 +61,11 @@ _Min_Stack_Size = 0x1000; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-  DTCMRAM  (xrw)    : ORIGIN = 0x20000000,   LENGTH = 128K
-  ETHRAM   (xrw)    : ORIGIN = 0x20020000,   LENGTH = 64K
-  SRAM1    (xrw)    : ORIGIN = 0x20030000,   LENGTH = 304K
-  SRAM2    (xrw)    : ORIGIN = 0x2007C000,   LENGTH = 16K
-  FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 2048K
+  DTCMRAM  (xrw)    : ORIGIN = 0x20000000,  LENGTH = 128K
+  ETHRAM   (xrw)    : ORIGIN = 0x20020000,  LENGTH = 64K
+  SRAM1    (xrw)    : ORIGIN = 0x20030000,  LENGTH = 304K
+  SRAM2    (xrw)    : ORIGIN = 0x2007C000,  LENGTH = 16K
+  FLASH    (rx)     : ORIGIN = 0x8000000,   LENGTH = 2048K
 }
 
 /* Define output sections */
