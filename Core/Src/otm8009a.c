@@ -539,7 +539,30 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(LTDC_LayerCfgTypeD
 
 
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_t y, uint16_t r, uint16_t t, uint32_t color) {
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(LTDC_LayerCfgTypeDef* layer, uint16_t x0, uint16_t y0, uint16_t r, uint16_t t, uint32_t color) {
+  int16_t x = 0;
+  int16_t y = r;
+  int16_t d = 1 - r;
+
+  while (x <= y) {
+    Display_DrawHLine(layer, (x0 + x - t), (y0 + y), t, t, color);
+    Display_DrawHLine(layer, (x0 + x - t), (y0 - y), t, t, color);
+    Display_DrawHLine(layer, (x0 + y - t), (y0 + x), t, t, color);
+    Display_DrawHLine(layer, (x0 + y - t), (y0 - x), t, t, color);
+
+    Display_DrawHLine(layer, (x0 - x - t), (y0 + y), t, t, color);
+    Display_DrawHLine(layer, (x0 - x - t), (y0 - y), t, t, color);
+    Display_DrawHLine(layer, (x0 - y - t), (y0 + x), t, t, color);
+    Display_DrawHLine(layer, (x0 - y - t), (y0 - x), t, t, color);
+
+    if (d < 0) {
+      d += 2 * x + 3;
+    } else {
+      d += 2 * (x - y) + 5;
+      y--;
+    }
+    x++;
+  }
 
   return HAL_OK;
 }
@@ -547,7 +570,26 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(LTDC_LayerCfgTypeDef*
 
 
 
-HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_t y, uint16_t r, uint32_t color) {
+HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(LTDC_LayerCfgTypeDef* layer, uint16_t x0, uint16_t y0, uint16_t r, uint32_t color) {
+  int16_t x = 0;
+  int16_t y = r;
+  int16_t d = 1 - r;
+
+  while (x <= y) {
+
+    Display_DrawHLine(layer, (x0 - x - 1), (y0 + y), (2 * x + 1), 1, color);
+    Display_DrawHLine(layer, (x0 - x - 1), (y0 - y), (2 * x + 1), 1, color);
+    Display_DrawHLine(layer, (x0 - y - 1), (y0 + x), (2 * y + 1), 1, color);
+    Display_DrawHLine(layer, (x0 - y - 1), (y0 - x), (2 * y + 1), 1, color);
+
+    if (d < 0) {
+      d += 2 * x + 3;
+    } else {
+      d += 2 * (x - y) + 5;
+      y--;
+    }
+    x++;
+  }
 
   return HAL_OK;
 }
