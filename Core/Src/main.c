@@ -209,7 +209,7 @@ int main(void)
   
   if (OTM8009A_Init(OTM8009A_FORMAT_RGB888) != HAL_OK) Error_Handler();
 
-  // MX_LWIP_Init();
+  MX_LWIP_Init();
 
   if (HAL_LTDC_ConfigLayer(&hltdc, &layer1, 0) != HAL_OK) Error_Handler();
   if (HAL_LTDC_ConfigLayer(&hltdc, &layer2, 1) != HAL_OK) Error_Handler();
@@ -217,7 +217,7 @@ int main(void)
   if (Display_FillLayer(&layer1, (ARGB8888_Lightblue | 0xff000000))) Error_Handler();
   if (Display_FillLayer(&layer2, (ARGB8888_Apple | 0xff000000))) Error_Handler();
 
-  if (Display_TestSimplePrimitives(&layer1)) Error_Handler();
+  // if (Display_TestSimplePrimitives(&layer2)) Error_Handler();
 
   static Display_TypeDef display = {
     .Model    = 8009,
@@ -235,7 +235,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     Display_Run(&display);
-    // MX_LWIP_Process();
+    MX_LWIP_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

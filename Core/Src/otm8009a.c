@@ -594,57 +594,46 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef*
 
 
 
-// --------------------------------------------------------------------------
-
-__STATIC_INLINE void DCache_CleanByAddr_32Aligned(void *addr, size_t bytes) {
-  const uint32_t CACHE_LINE = 32;
-  
-  uintptr_t start = (uintptr_t)addr;
-  uintptr_t end   = start + bytes;
-  
-  uintptr_t start_aligned = start & ~(CACHE_LINE - 1);
-  uintptr_t end_aligned   = (end + (CACHE_LINE - 1)) & ~(CACHE_LINE - 1);
-  
-  SCB_CleanDCache_by_Addr((uint32_t*)start_aligned, (int32_t)(end_aligned - start_aligned));
-  __DSB();
-  __ISB();
-}
-
-
-
-
 
 // --------------------------------------------------------------------------
 
 HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef* layer, uint16_t *x, uint16_t *y, const Font_TypeDef *f, const char *str, bool wrap) {
-
+  
   uint16_t char_count = 0;
-
+  
   while (str[char_count++] != '\n') {
     if (char_count > 64) break;
   }
-
+  
   char_count--;
-
+  
   while (!vblank_ready) __WFI();
   vblank_ready = 0;
-
-  DCache_CleanByAddr_32Aligned((void*)layer->FBStartAdress, layer->ImageWidth * layer->ImageHeight * 4);
-  DCache_CleanByAddr_32Aligned((void*)layer->FBStartAdress, layer->ImageWidth * layer->ImageHeight * 4);
-
+  
+  SCB_CleanDCache_by_Addr((uint32_t*)layer->FBStartAdress, layer->ImageWidth * layer->ImageHeight * 4);
+  // HAL_Delay(10);
+  
   for (uint16_t ic = 0; ic < char_count; ic++) {
     Display_DrawSymbol(layer, x, y, f, str[ic]);
   }
-
+  
   return HAL_OK;
 }
 
+
+
+// --------------------------------------------------------------------------
 
 void HAL_LTDC_LineEventCallback(LTDC_HandleTypeDef *hltdc) {
   if (hltdc->Instance == LTDC) {
     /* We are now in VBlank */
     vblank_ready = 1;
     /* Re-arm the interrupt */
-    HAL_LTDC_ProgramLineEvent(hltdc, DISPLAY_HEIGHT - 1);
+    #ifdef _PORTRAIT_
+      HAL_LTDC_ProgramLineEvent(hltdc, _HSA_ + _HBP_ + DISPLAY_WIDTH - 1);
+    #endif
+    #ifdef _LANDSCAPE_
+      HAL_LTDC_ProgramLineEvent(hltdc, _VSA_ + _VBP_ + DISPLAY_HEIGHT - 1);
+    #endif
   }
 }

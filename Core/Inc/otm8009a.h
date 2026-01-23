@@ -27,6 +27,65 @@
 
 
 /* Private defines -----------------------------------------------------------*/
+
+
+/* Display defines -----------------------------------------------------------*/
+
+// #define _PORTRAIT_
+#ifndef _PORTRAIT_
+  #define _LANDSCAPE_
+#endif
+
+// -------- Portrait ---------
+#ifdef _PORTRAIT_
+  #define DISPLAY_HEIGHT              (uint16_t)(800)
+  #define DISPLAY_WIDTH               (uint16_t)(480)
+#endif
+
+// -------- Landscape --------
+#ifdef _LANDSCAPE_
+  #define DISPLAY_HEIGHT             (uint16_t)(480)
+  #define DISPLAY_WIDTH              (uint16_t)(800)
+#endif
+
+
+/* All padding in portrait mode should be zero */
+#ifdef _PORTRAIT_ 
+  #define L1_PADDING_LEFT             (uint8_t)0
+  #define L1_PADDING_RIGHT            (uint8_t)0
+  #define L1_PADDING_TOP              (uint8_t)0
+  #define L1_PADDING_BOTTOM           (uint8_t)0
+  #define L2_PADDING_LEFT             (uint8_t)0
+  #define L2_PADDING_RIGHT            (uint8_t)0
+  #define L2_PADDING_TOP              (uint8_t)0
+  #define L2_PADDING_BOTTOM           (uint8_t)0
+#endif
+
+#ifdef _LANDSCAPE_
+  #define L1_PADDING_LEFT             (uint8_t)0
+  #define L1_PADDING_RIGHT            (uint8_t)0
+  #define L1_PADDING_TOP              (uint8_t)0
+  #define L1_PADDING_BOTTOM           (uint8_t)0
+  #define L2_PADDING_LEFT             (uint8_t)0
+  #define L2_PADDING_RIGHT            (uint8_t)0
+  #define L2_PADDING_TOP              (uint8_t)0
+  #define L2_PADDING_BOTTOM           (uint8_t)0
+#endif
+
+#define L1_HEIGHT                   (uint16_t)(DISPLAY_HEIGHT - L1_PADDING_BOTTOM - L1_PADDING_TOP)
+#define L1_WIDTH                    (uint16_t)(DISPLAY_WIDTH - L1_PADDING_LEFT - L1_PADDING_RIGHT)
+#define L2_HEIGHT                   (uint16_t)(DISPLAY_HEIGHT - L2_PADDING_BOTTOM - L2_PADDING_TOP)
+#define L2_WIDTH                    (uint16_t)(DISPLAY_WIDTH - L2_PADDING_LEFT - L2_PADDING_RIGHT)
+
+#define L1_BYTES                    (uint32_t)(L1_HEIGHT * L1_WIDTH * 4)
+#define L2_BYTES                    (uint32_t)(L2_HEIGHT * L2_WIDTH * 4)
+#define L1_ADDR                     SDRAM_START_ADDR
+#define L2_ADDR                     (uint32_t)(L1_ADDR + 0x00800000)
+#define L1_MAX_ADDR                 (uint32_t)(L1_ADDR - 1)
+#define L2_MAX_ADDR                 SDRAM_MAX_ADDR
+
+
+
 /**
  *  @brief  Possible values of
  *  pixel data format (ie color coding) transmitted on DSI Data lane in DSI packets
@@ -41,29 +100,39 @@
 #define  OTM8009A_480X800_HBP               (uint16_t)34     /* Horizontal back porch      */
 #define  OTM8009A_480X800_HFP               (uint16_t)34     /* Horizontal front porch     */
 #define  OTM8009A_480X800_VSYNC             (uint16_t)1      /* Vertical synchronization   */
-#define  OTM8009A_480X800_VBP               (uint16_t)15      /* Vertical back porch        */
-#define  OTM8009A_480X800_VFP               (uint16_t)16      /* Vertical front porch       */
+#define  OTM8009A_480X800_VBP               (uint16_t)15     /* Vertical back porch        */
+#define  OTM8009A_480X800_VFP               (uint16_t)16     /* Vertical front porch       */
 
 /**
   * @brief  OTM8009A_800X480 Timing parameters for Landscape orientation mode
   *         Same values as for Portrait mode in fact.
   */
-#define  OTM8009A_800X480_HSYNC             OTM8009A_480X800_VSYNC  /* Horizontal synchronization */
-#define  OTM8009A_800X480_HBP               OTM8009A_480X800_VBP    /* Horizontal back porch      */
-#define  OTM8009A_800X480_HFP               OTM8009A_480X800_VFP    /* Horizontal front porch     */
-#define  OTM8009A_800X480_VSYNC             OTM8009A_480X800_HSYNC  /* Vertical synchronization   */
-#define  OTM8009A_800X480_VBP               OTM8009A_480X800_HBP    /* Vertical back porch        */
-#define  OTM8009A_800X480_VFP               OTM8009A_480X800_HFP    /* Vertical front porch       */
-
-
-  /* The following values are same for portrait and landscape orientations */
-#define _VSA_         OTM8009A_480X800_VSYNC  // 12 
-#define _VBP_         OTM8009A_480X800_VBP    // 12
-#define _VFP_         OTM8009A_480X800_VFP    // 12
-#define _HSA_         OTM8009A_480X800_HSYNC  // 63
-#define _HBP_         OTM8009A_480X800_HBP    // 120
-#define _HFP_         OTM8009A_480X800_HFP    // 120
-
+ #define  OTM8009A_800X480_HSYNC             OTM8009A_480X800_VSYNC  /* Horizontal synchronization */
+ #define  OTM8009A_800X480_HBP               OTM8009A_480X800_VBP    /* Horizontal back porch      */
+ #define  OTM8009A_800X480_HFP               OTM8009A_480X800_VFP    /* Horizontal front porch     */
+ #define  OTM8009A_800X480_VSYNC             OTM8009A_480X800_HSYNC  /* Vertical synchronization   */
+ #define  OTM8009A_800X480_VBP               OTM8009A_480X800_HBP    /* Vertical back porch        */
+ #define  OTM8009A_800X480_VFP               OTM8009A_480X800_HFP    /* Vertical front porch       */
+ 
+ /* The following values are same for portrait and landscape orientations */
+ #ifdef _LANDSCAPE_
+  #define _VSA_         OTM8009A_480X800_VSYNC
+  #define _VBP_         OTM8009A_480X800_VBP
+  #define _VFP_         OTM8009A_480X800_VFP
+  #define _HSA_         OTM8009A_480X800_HSYNC
+  #define _HBP_         OTM8009A_480X800_HBP
+  #define _HFP_         OTM8009A_480X800_HFP
+#endif
+ 
+ #ifdef _PORTRAIT_
+  #define _VSA_         OTM8009A_800X480_VSYNC 
+  #define _VBP_         OTM8009A_800X480_VBP
+  #define _VFP_         OTM8009A_800X480_VFP
+  #define _HSA_         OTM8009A_800X480_HSYNC
+  #define _HBP_         OTM8009A_800X480_HBP
+  #define _HFP_         OTM8009A_800X480_HFP
+#endif
+ 
 
 
 
@@ -162,60 +231,6 @@ extern SDRAM_HandleTypeDef hsdram1;
 
 
 
-/* Display defines -----------------------------------------------------------*/
-
-// #define _PORTRAIT_
-#ifndef _PORTRAIT_
-  #define _LANDSCAPE_
-#endif
-
-// -------- Portrait ---------
-#ifdef _PORTRAIT_
-  #define DISPLAY_HEIGHT              (uint16_t)(800)
-  #define DISPLAY_WIDTH               (uint16_t)(480)
-#endif
-
-// -------- Landscape --------
-#ifdef _LANDSCAPE_
-  #define DISPLAY_HEIGHT             (uint16_t)(480)
-  #define DISPLAY_WIDTH              (uint16_t)(800)
-#endif
-
-
-/* All padding in portrait mode should be zero */
-#ifdef _PORTRAIT_ 
-  #define L1_PADDING_LEFT             (uint8_t)10
-  #define L1_PADDING_RIGHT            (uint8_t)10
-  #define L1_PADDING_TOP              (uint8_t)10
-  #define L1_PADDING_BOTTOM           (uint8_t)10
-  #define L2_PADDING_LEFT             (uint8_t)40
-  #define L2_PADDING_RIGHT            (uint8_t)40
-  #define L2_PADDING_TOP              (uint8_t)40
-  #define L2_PADDING_BOTTOM           (uint8_t)40
-#endif
-
-#ifdef _LANDSCAPE_
-  #define L1_PADDING_LEFT             (uint8_t)10
-  #define L1_PADDING_RIGHT            (uint8_t)10
-  #define L1_PADDING_TOP              (uint8_t)10
-  #define L1_PADDING_BOTTOM           (uint8_t)10
-  #define L2_PADDING_LEFT             (uint8_t)40
-  #define L2_PADDING_RIGHT            (uint8_t)40
-  #define L2_PADDING_TOP              (uint8_t)40
-  #define L2_PADDING_BOTTOM           (uint8_t)40
-#endif
-
-#define L1_HEIGHT                   (uint16_t)(DISPLAY_HEIGHT - L1_PADDING_BOTTOM - L1_PADDING_TOP)
-#define L1_WIDTH                    (uint16_t)(DISPLAY_WIDTH - L1_PADDING_LEFT - L1_PADDING_RIGHT)
-#define L2_HEIGHT                   (uint16_t)(DISPLAY_HEIGHT - L2_PADDING_BOTTOM - L2_PADDING_TOP)
-#define L2_WIDTH                    (uint16_t)(DISPLAY_WIDTH - L2_PADDING_LEFT - L2_PADDING_RIGHT)
-
-#define L1_BYTES                    (uint32_t)(L1_HEIGHT * L1_WIDTH * 4)
-#define L2_BYTES                    (uint32_t)(L2_HEIGHT * L2_WIDTH * 4)
-#define L1_ADDR                     SDRAM_START_ADDR
-#define L2_ADDR                     (uint32_t)(L1_ADDR + 0x00800000)
-#define L1_MAX_ADDR                 (uint32_t)(L1_ADDR - 1)
-#define L2_MAX_ADDR                 SDRAM_MAX_ADDR
 
 
 /* Private defines -----------------------------------------------------------*/

@@ -73,9 +73,11 @@ void Display_Run(Display_TypeDef* dev) {
     //   if (Display_FillRectangle(dev->Layer2, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return;
     // }
 
-    uint16_t x1 = 140;
+    // if (Display_TestSimplePrimitives(dev->Layer1)) Error_Handler();
+
+    uint16_t x1 = 240;
     uint16_t y1 = 80;
-    uint16_t x2 = 140;
+    uint16_t x2 = 5;
     uint16_t y2 = 120;
 
     // Display_DrawSymbol(dev->Layer2, &x, &y, &font, '3');
@@ -83,6 +85,8 @@ void Display_Run(Display_TypeDef* dev) {
     Display_PrintString(dev->Layer1, &x1, &y1, &font, "CoroideVO!86728543\n", false);
     
     Display_PrintString(dev->Layer2, &x2, &y2, &font2, "1234567890123456789012345678901234567890123456789012345678901234567890\n", false);
+
+    Display_DrawVLine(dev->Layer2, 200, 220, 100, 3, (ARGB8888_Black | 0xff000000));
 
   }
 }
