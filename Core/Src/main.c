@@ -48,6 +48,8 @@ DMA2D_HandleTypeDef hdma2d;
 
 DSI_HandleTypeDef hdsi;
 
+I2C_HandleTypeDef hi2c1;
+
 LTDC_HandleTypeDef hltdc;
 
 UART_HandleTypeDef huart1;
@@ -70,6 +72,7 @@ static void MX_DMA2D_Init(void);
 static void MX_DSIHOST_DSI_Init(void);
 static void MX_LTDC_Init(void);
 static void MX_FMC_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -216,16 +219,25 @@ int main(void)
   if (Display_FillLayer(&layer1, (ARGB8888_Lightblue | 0xff000000))) Error_Handler();
   if (Display_FillLayer(&layer2, (ARGB8888_Apple | 0xff000000))) Error_Handler();
   
-  MX_LWIP_Init();
+  // MX_LWIP_Init();
 
-  static Display_TypeDef display = {
+
+  static TouchScreen_TypeDef touch_0 = {
+    .Model      = 6206,
+    .BusHandler = (uint32_t*)&hi2c1,
+    .BusAddr    = (FT6206_I2C_ADDR << 1),
+  };
+
+  static Display_TypeDef display_0 = {
     .Model    = 8009,
     .Lock     = DISABLE,
     .Layer1   = &layer1,
     .Layer2   = &layer2,
+    .TouchDev = &touch_0,
   };
 
   /* USER CODE END 2 */
+  MX_I2C1_Init();
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -233,8 +245,8 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-    Display_Run(&display);
-    MX_LWIP_Process();
+    Display_Run(&display_0);
+    // MX_LWIP_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -781,12 +793,12 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(ARD_D13_SCK_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : NC4_Pin NC5_Pin uSD_Detect_Pin LCD_BL_CTRL_Pin */
-  // GPIO_InitStruct.Pin = NC4_Pin|NC5_Pin|uSD_Detect_Pin|LCD_BL_CTRL_Pin;
-  // GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  // GPIO_InitStruct.Pull = GPIO_NOPULL;
-  // HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = NC4_Pin|NC5_Pin|uSD_Detect_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
 
-  // GPIO init: make LCD_BL_CTRL output
+  /*Configure GPIO pins : LCD_BL_CTRL_Pin */
   GPIO_InitStruct.Pin = LCD_BL_CTRL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -1038,6 +1050,57 @@ static void MX_GPIO_Init(void)
 
   /* USER CODE END MX_GPIO_Init_2 */
 }
+
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.Timing = 0x20404768;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
+}
+
+
 
 /* USER CODE BEGIN 4 */
 

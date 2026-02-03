@@ -65,6 +65,18 @@ void Display_Run(Display_TypeDef* dev) {
   } else {
     step = tick + SIMPLE_PAUSE;
     
+    I2C_HandleTypeDef* touch_dev_handler = (I2C_HandleTypeDef*)dev->TouchDev->BusHandler;
+    uint8_t id;
+    HAL_I2C_Mem_Read(touch_dev_handler,
+                 dev->TouchDev->BusAddr,
+                 0xa6,
+                 I2C_MEMADD_SIZE_8BIT,
+                 &id,
+                 1,
+                 HAL_MAX_DELAY);
+
+    printf("FT6206 ID = 0x%02X\r\n", id);
+
 
 
     // if (step % 2) {
