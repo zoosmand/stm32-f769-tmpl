@@ -65,27 +65,27 @@ void Display_Run(Display_TypeDef* dev) {
   } else {
     step = tick + SIMPLE_PAUSE;
     
-    I2C_HandleTypeDef* touch_dev_handler = (I2C_HandleTypeDef*)dev->TouchDev->BusHandler;
-    uint8_t id;
-    // uint8_t reg = 0xa8;
+    // I2C_HandleTypeDef* touch_dev_handler = (I2C_HandleTypeDef*)dev->TouchDev->BusHandler;
+    // uint8_t id;
+    // // uint8_t reg = 0xa8;
 
-    // HAL_I2C_Master_Transmit(&hi2c4, dev->TouchDev->BusAddr, &reg, 1, 20);
-    // HAL_I2C_Master_Receive (&hi2c4, dev->TouchDev->BusAddr | 0x01, &id, 1, 20);
-    HAL_I2C_Mem_Read(touch_dev_handler,
-                 dev->TouchDev->BusAddr,
-                 0xa8,
-                 I2C_MEMADD_SIZE_8BIT,
-                 &id,
-                 1,
-                 30);
+    // // HAL_I2C_Master_Transmit(&hi2c4, dev->TouchDev->BusAddr, &reg, 1, 20);
+    // // HAL_I2C_Master_Receive (&hi2c4, dev->TouchDev->BusAddr | 0x01, &id, 1, 20);
+    // HAL_I2C_Mem_Read(touch_dev_handler,
+    //              dev->TouchDev->BusAddr,
+    //              0xa8,
+    //              I2C_MEMADD_SIZE_8BIT,
+    //              &id,
+    //              1,
+    //              30);
 
-    printf("FT6206 ID = 0x%02X\r\n", id);
+    // printf("FT6206 ID = 0x%02X\r\n", id);
 
-    // __HAL_RCC_I2C1_CLK_ENABLE();
-    // __HAL_RCC_I2C1_FORCE_RESET();
-    // __HAL_RCC_I2C1_RELEASE_RESET();
+    // // __HAL_RCC_I2C1_CLK_ENABLE();
+    // // __HAL_RCC_I2C1_FORCE_RESET();
+    // // __HAL_RCC_I2C1_RELEASE_RESET();
 
-    HAL_Delay(200);
+    // HAL_Delay(200);
 
     // if (HAL_I2C_IsDeviceReady(&hi2c4, dev->TouchDev->BusAddr, 3, 50) != HAL_OK) {
     //   // no ACK -> address/pins/reset/pullups/timing
@@ -98,7 +98,7 @@ void Display_Run(Display_TypeDef* dev) {
     //   if (Display_FillRectangle(dev->Layer2, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return;
     // }
 
-    if (Display_TestSimplePrimitives(dev->Layer1)) Error_Handler();
+    if (Display_TestSimplePrimitives(dev, L1)) Error_Handler();
 
     uint16_t x1 = 240;
     uint16_t y1 = 80;
@@ -111,7 +111,7 @@ void Display_Run(Display_TypeDef* dev) {
     
     Display_PrintString(dev->Layer2, &x2, &y2, &font2, "1234567890123456789012345678901234567890123456789012345678901234567890\n", false);
 
-    // Display_DrawVLine(dev->Layer2, 200, 220, 100, 3, (ARGB8888_Black | 0xff000000));
+    // // Display_DrawVLine(dev->Layer2, 200, 220, 100, 3, (ARGB8888_Black | 0xff000000));
 
     Display_DrawCircle(dev->Layer1, 100, 300, 50, 2, (ARGB8888_Blue | 0xff000000));
     Display_FillCircle(dev->Layer2, 100, 200, 50, (ARGB8888_Blue | 0xff000000));
@@ -121,9 +121,11 @@ void Display_Run(Display_TypeDef* dev) {
 
 
 
-HAL_StatusTypeDef Display_TestSimplePrimitives(LTDC_LayerCfgTypeDef* layer) {
+HAL_StatusTypeDef Display_TestSimplePrimitives(Display_TypeDef* dev, LTCDLayer_t l) {
   
   // if (Display_FillRectangle(layer, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return HAL_ERROR;
+
+  LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
 
   if (Display_DrawPixel(layer, 10, 10, (ARGB8888_Yellow | 0xff000000)) != HAL_OK) return HAL_ERROR;
 

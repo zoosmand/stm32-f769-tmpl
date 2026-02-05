@@ -123,6 +123,15 @@ typedef struct {
 
 
 /**
+ * @brief   LTCD layer enumeration.
+ */
+typedef enum {
+  L1,
+  L2,
+} LTCDLayer_t;
+
+
+/**
  * @brief   Display device type definition struct.
  */
 typedef struct {
@@ -130,7 +139,16 @@ typedef struct {
   uint16_t              Model;
   LTDC_LayerCfgTypeDef* Layer1;
   LTDC_LayerCfgTypeDef* Layer2;
+  uint32_t              BgLayer1;
+  uint32_t              BgLayer2;
   TouchScreen_TypeDef*  TouchDev;
+  DSI_HandleTypeDef*    DSIDevHandler;
+  DMA2D_HandleTypeDef*  DMADevHandler;
+  SDRAM_HandleTypeDef*  SDRAMDevHandler;
+  LTDC_HandleTypeDef*   LTDCDevHandler;
+  uint16_t              Width;
+  uint16_t              Height;
+  uint32_t              ColorSchema;
   HAL_StatusTypeDef     (*Callback)(uint32_t*);
 } Display_TypeDef;
 

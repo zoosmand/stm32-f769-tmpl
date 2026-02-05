@@ -10,7 +10,7 @@
 
 
 
-HAL_StatusTypeDef Display_TestSimplePrimitives(LTDC_LayerCfgTypeDef*);
+HAL_StatusTypeDef Display_TestSimplePrimitives(Display_TypeDef*, LTCDLayer_t);
 
 void Display_Run(Display_TypeDef*);
 

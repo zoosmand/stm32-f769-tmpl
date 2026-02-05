@@ -102,6 +102,41 @@ static const uint8_t ShortRegData50[] = { OTM8009A_CMD_NOP, 0xb1 };
 static const uint8_t ShortRegData51[] = { 0xc6, 0x06 };
 
 
+static LTDC_LayerCfgTypeDef layer1 = {
+  .WindowX0         = L1_PADDING_LEFT,
+  .WindowX1         = (L1_HEIGHT + L1_PADDING_RIGHT),
+  .WindowY0         = L1_PADDING_BOTTOM,
+  .WindowY1         = (L1_WIDTH + L1_PADDING_TOP),
+  .PixelFormat      = LTDC_PIXEL_FORMAT_ARGB8888,
+  .FBStartAdress    = L1_ADDR,
+  .Alpha            = 125,
+  .Alpha0           = 0,
+  .BlendingFactor1  = LTDC_BLENDING_FACTOR1_PAxCA,
+  .BlendingFactor2  = LTDC_BLENDING_FACTOR2_PAxCA,
+  .ImageWidth       = L1_HEIGHT,
+  .ImageHeight      = L1_WIDTH,
+  .Backcolor.Blue   = 0x00,
+  .Backcolor.Green  = 0x00,
+  .Backcolor.Red    = 0x00,
+};
+
+static LTDC_LayerCfgTypeDef layer2 = {
+  .WindowX0         = L2_PADDING_LEFT,
+  .WindowX1         = (L2_HEIGHT + L2_PADDING_RIGHT),
+  .WindowY0         = L2_PADDING_BOTTOM,
+  .WindowY1         = (L2_WIDTH + L2_PADDING_TOP),
+  .PixelFormat      = LTDC_PIXEL_FORMAT_ARGB8888,
+  .FBStartAdress    = L2_ADDR,
+  .Alpha            = 125,
+  .Alpha0           = 0,
+  .BlendingFactor1  = LTDC_BLENDING_FACTOR1_PAxCA,
+  .BlendingFactor2  = LTDC_BLENDING_FACTOR2_PAxCA,
+  .ImageWidth       = L2_HEIGHT,
+  .ImageHeight      = L2_WIDTH,
+  .Backcolor.Blue   = 0x00,
+  .Backcolor.Green  = 0x00,
+  .Backcolor.Red    = 0x00,
+};
 
 
 
@@ -121,211 +156,232 @@ __STATIC_INLINE HAL_StatusTypeDef dsi_write(uint32_t, uint8_t*);
   * @brief  Send the sequence of initialization command and data to display.
   * @retval None
   */
-HAL_StatusTypeDef OTM8009A_Init(uint32_t colorSchema) {
+Display_TypeDef* OTM8009A_Init(void) {
 
-  Display_TypeDef display_0 = {};
+  static Display_TypeDef display_0 = {
+    .Model            = 8009,
+    .Lock             = DISABLE,
+    .DMADevHandler    = &hdma2d,
+    .DSIDevHandler    = &hdsi,
+    .SDRAMDevHandler  = &hsdram1,
+    .LTDCDevHandler   = &hltdc,
+    .Layer1           = &layer1,
+    .Layer2           = &layer2,
+    .BgLayer1         = (ARGB8888_Lightblue | 0xff000000),
+    .BgLayer2         = (ARGB8888_Apple | 0xff000000),
+    .Width            = DISPLAY_WIDTH,
+    .Height           = DISPLAY_HEIGHT,
+    .ColorSchema      = OTM8009A_FORMAT_RGB888,
+  };
+
+  Display_TypeDef* dev = &display_0;
+
+  if (dev->Lock == DISABLE) dev->Lock = ENABLE;
+  if (dev->DMADevHandler->Lock == HAL_LOCKED) return dev;
+  if (dev->DSIDevHandler->Lock == HAL_LOCKED) return dev;
+  if (dev->SDRAMDevHandler->Lock == HAL_LOCKED) return dev;
 
 
   /* Enable CMD2 to access vendor specific commands                               */
   /* Enter in command 2 mode and set EXTC to enable address shift function (0x00) */
   // dsi_write(0, (uint8_t*){ OTM8009A_CMD_NOP, 0x00 });
-  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return dev;
   // dsi_write( 3, (const uint8_t *){0x80, 0x09, 0x01, 0xff});
-  if (dsi_write( 3, (uint8_t *)lcdRegData1) != HAL_OK) return HAL_ERROR;
+  if (dsi_write( 3, (uint8_t *)lcdRegData1) != HAL_OK) return dev;
 
   /* Enter ORISE Command 2 */
-  if (dsi_write(0, (uint8_t *)ShortRegData2) != HAL_OK) return HAL_ERROR; /* Shift address to 0x80 */
-  if (dsi_write( 2, (uint8_t *)lcdRegData2) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData2) != HAL_OK) return dev; /* Shift address to 0x80 */
+  if (dsi_write( 2, (uint8_t *)lcdRegData2) != HAL_OK) return dev;
 
   /////////////////////////////////////////////////////////////////////
   /* SD_PCH_CTRL - 0xC480h - 129th parameter - Default 0x00          */
   /* Set SD_PT                                                       */
   /* -> Source output level during porch and non-display area to GND */
-  if (dsi_write(0, (uint8_t *)ShortRegData2) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData3) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData2) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData3) != HAL_OK) return dev;
   HAL_Delay(10);
   /* Not documented */
-  if (dsi_write(0, (uint8_t *)ShortRegData4) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData5) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData4) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData5) != HAL_OK) return dev;
   HAL_Delay(10);
   /////////////////////////////////////////////////////////////////////
 
   /* PWR_CTRL4 - 0xC4B0h - 178th parameter - Default 0xA8 */
   /* Set gvdd_en_test                                     */
   /* -> enable GVDD test mode !!!                         */
-  if (dsi_write(0, (uint8_t *)ShortRegData6) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData7) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData6) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData7) != HAL_OK) return dev;
 
   /* PWR_CTRL2 - 0xC590h - 146th parameter - Default 0x79      */
   /* Set pump 4 vgh voltage                                    */
   /* -> from 15.0v down to 13.0v                               */
   /* Set pump 5 vgh voltage                                    */
   /* -> from -12.0v downto -9.0v                               */
-  if (dsi_write(0, (uint8_t *)ShortRegData8) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData9) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData8) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData9) != HAL_OK) return dev;
 
   /* P_DRV_M - 0xC0B4h - 181th parameter - Default 0x00 */
   /* -> Column inversion                                */
-  if (dsi_write(0, (uint8_t *)ShortRegData10) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData11) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData10) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData11) != HAL_OK) return dev;
 
   /* VCOMDC - 0xD900h - 1st parameter - Default 0x39h */
   /* VCOM Voltage settings                            */
   /* -> from -1.0000v downto -1.2625v                 */
-  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData12) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData12) != HAL_OK) return dev;
 
   /* Oscillator adjustment for Idle/Normal mode (LPDT only) set to 65Hz (default is 60Hz) */
-  if (dsi_write(0, (uint8_t *)ShortRegData13) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData14) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData13) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData14) != HAL_OK) return dev;
 
   /* Video mode internal */
-  if (dsi_write(0, (uint8_t *)ShortRegData15) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData16) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData15) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData16) != HAL_OK) return dev;
 
   /* PWR_CTRL2 - 0xC590h - 147h parameter - Default 0x00 */
   /* Set pump 4&5 x6                                     */
   /* -> ONLY VALID when PUMP4_EN_ASDM_HV = "0"           */
-  if (dsi_write(0, (uint8_t *)ShortRegData17) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData18) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData17) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData18) != HAL_OK) return dev;
 
   /* PWR_CTRL2 - 0xC590h - 150th parameter - Default 0x33h */
   /* Change pump4 clock ratio                              */
   /* -> from 1 line to 1/2 line                            */
-  if (dsi_write(0, (uint8_t *)ShortRegData19) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData9) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData19) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData9) != HAL_OK) return dev;
 
   /* GVDD/NGVDD settings */
-  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 2, (uint8_t *)lcdRegData5) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return dev;
+  if (dsi_write( 2, (uint8_t *)lcdRegData5) != HAL_OK) return dev;
 
   /* PWR_CTRL2 - 0xC590h - 149th parameter - Default 0x33h */
   /* Rewrite the default value !                           */
-  if (dsi_write(0, (uint8_t *)ShortRegData20) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData21) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData20) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData21) != HAL_OK) return dev;
 
   /* Panel display timing Setting 3 */
-  if (dsi_write(0, (uint8_t *)ShortRegData22) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData23) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData22) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData23) != HAL_OK) return dev;
 
   /* Power control 1 */
-  if (dsi_write(0, (uint8_t *)ShortRegData24) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData25) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData24) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData25) != HAL_OK) return dev;
 
   /* Source driver precharge */
-  if (dsi_write(0, (uint8_t *)ShortRegData13) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData26) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData13) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData26) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData15) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData27) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData15) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData27) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData28) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 2, (uint8_t *)lcdRegData6) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData28) != HAL_OK) return dev;
+  if (dsi_write( 2, (uint8_t *)lcdRegData6) != HAL_OK) return dev;
 
   /* GOAVST */
-  if (dsi_write(0, (uint8_t *)ShortRegData2) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 6, (uint8_t *)lcdRegData7) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData2) != HAL_OK) return dev;
+  if (dsi_write( 6, (uint8_t *)lcdRegData7) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData29) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 14, (uint8_t *)lcdRegData8) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData29) != HAL_OK) return dev;
+  if (dsi_write( 14, (uint8_t *)lcdRegData8) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData30) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 14, (uint8_t *)lcdRegData9) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData30) != HAL_OK) return dev;
+  if (dsi_write( 14, (uint8_t *)lcdRegData9) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData31) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 10, (uint8_t *)lcdRegData10) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData31) != HAL_OK) return dev;
+  if (dsi_write( 10, (uint8_t *)lcdRegData10) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData32) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData46) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData32) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData46) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData2) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 10, (uint8_t *)lcdRegData11) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData2) != HAL_OK) return dev;
+  if (dsi_write( 10, (uint8_t *)lcdRegData11) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData33) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 15, (uint8_t *)lcdRegData12) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData33) != HAL_OK) return dev;
+  if (dsi_write( 15, (uint8_t *)lcdRegData12) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData29) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 15, (uint8_t *)lcdRegData13) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData29) != HAL_OK) return dev;
+  if (dsi_write( 15, (uint8_t *)lcdRegData13) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData30) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 10, (uint8_t *)lcdRegData14) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData30) != HAL_OK) return dev;
+  if (dsi_write( 10, (uint8_t *)lcdRegData14) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData31) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 15, (uint8_t *)lcdRegData15) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData31) != HAL_OK) return dev;
+  if (dsi_write( 15, (uint8_t *)lcdRegData15) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData32) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 15, (uint8_t *)lcdRegData16) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData32) != HAL_OK) return dev;
+  if (dsi_write( 15, (uint8_t *)lcdRegData16) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData34) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 10, (uint8_t *)lcdRegData17) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData34) != HAL_OK) return dev;
+  if (dsi_write( 10, (uint8_t *)lcdRegData17) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData35) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 10, (uint8_t *)lcdRegData18) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData35) != HAL_OK) return dev;
+  if (dsi_write( 10, (uint8_t *)lcdRegData18) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData2) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 10, (uint8_t *)lcdRegData19) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData2) != HAL_OK) return dev;
+  if (dsi_write( 10, (uint8_t *)lcdRegData19) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData33) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 15, (uint8_t *)lcdRegData20) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData33) != HAL_OK) return dev;
+  if (dsi_write( 15, (uint8_t *)lcdRegData20) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData29) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 15, (uint8_t *)lcdRegData21) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData29) != HAL_OK) return dev;
+  if (dsi_write( 15, (uint8_t *)lcdRegData21) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData30) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 10, (uint8_t *)lcdRegData22) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData30) != HAL_OK) return dev;
+  if (dsi_write( 10, (uint8_t *)lcdRegData22) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData31) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 15, (uint8_t *)lcdRegData23) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData31) != HAL_OK) return dev;
+  if (dsi_write( 15, (uint8_t *)lcdRegData23) != HAL_OK) return dev;
 
-  if (dsi_write(0, (uint8_t *)ShortRegData32) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 15, (uint8_t *)lcdRegData24) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData32) != HAL_OK) return dev;
+  if (dsi_write( 15, (uint8_t *)lcdRegData24) != HAL_OK) return dev;
 
   /////////////////////////////////////////////////////////////////////////////
   /* PWR_CTRL1 - 0xc580h - 130th parameter - default 0x00 */
   /* Pump 1 min and max DM                                */
-  if (dsi_write(0, (uint8_t *)ShortRegData13) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData47) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData48) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData49) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData13) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData47) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData48) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData49) != HAL_OK) return dev;
   /////////////////////////////////////////////////////////////////////////////
 
   /* CABC LEDPWM frequency adjusted to 19,5kHz */
-  if (dsi_write(0, (uint8_t *)ShortRegData50) != HAL_OK) return HAL_ERROR;
-  if (dsi_write(0, (uint8_t *)ShortRegData51) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData50) != HAL_OK) return dev;
+  if (dsi_write(0, (uint8_t *)ShortRegData51) != HAL_OK) return dev;
 
   /* Exit CMD2 mode */
-  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 3, (uint8_t *)lcdRegData25) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return dev;
+  if (dsi_write( 3, (uint8_t *)lcdRegData25) != HAL_OK) return dev;
 
   /*************************************************************************** */
   /* Standard DCS Initialization TO KEEP CAN BE DONE IN HSDT                   */
   /*************************************************************************** */
 
   /* NOP - goes back to DCS std command ? */
-  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return dev;
 
   /* Gamma correction 2.2+ table (HSDT possible) */
-  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 16, (uint8_t *)lcdRegData3) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return dev;
+  if (dsi_write( 16, (uint8_t *)lcdRegData3) != HAL_OK) return dev;
 
   /* Gamma correction 2.2- table (HSDT possible) */
-  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return HAL_ERROR;
-  if (dsi_write( 16, (uint8_t *)lcdRegData4) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return dev;
+  if (dsi_write( 16, (uint8_t *)lcdRegData4) != HAL_OK) return dev;
 
   /* Send Sleep Out command to display : no parameter */
-  if (dsi_write(0, (uint8_t *)ShortRegData36) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData36) != HAL_OK) return dev;
 
   /* Wait for sleep out exit */
   HAL_Delay(120);
 
-  switch(colorSchema) {
+  switch(dev->ColorSchema) {
     case OTM8009A_FORMAT_RBG565 :
       /* Set Pixel color format to RGB565 */
-      if (dsi_write(0, (uint8_t *)ShortRegData37) != HAL_OK) return HAL_ERROR;
+      if (dsi_write(0, (uint8_t *)ShortRegData37) != HAL_OK) return dev;
       break;
     case OTM8009A_FORMAT_RGB888 :
       /* Set Pixel color format to RGB888 */
-      if (dsi_write(0, (uint8_t *)ShortRegData38) != HAL_OK) return HAL_ERROR;
+      if (dsi_write(0, (uint8_t *)ShortRegData38) != HAL_OK) return dev;
       break;
     default :
       break;
@@ -351,42 +407,54 @@ HAL_StatusTypeDef OTM8009A_Init(uint32_t colorSchema) {
     */
     static const uint8_t lcdRegData28[] = {0x00, 0x00, 0x01, 0xdf, OTM8009A_CMD_PASET};
 
-    if (dsi_write(0, (uint8_t *)ShortRegData39) != HAL_OK) return HAL_ERROR;
-    if (dsi_write(4, (uint8_t *)lcdRegData27) != HAL_OK) return HAL_ERROR;
-    if (dsi_write(4, (uint8_t *)lcdRegData28) != HAL_OK) return HAL_ERROR;
+    if (dsi_write(0, (uint8_t *)ShortRegData39) != HAL_OK) return dev;
+    if (dsi_write(4, (uint8_t *)lcdRegData27) != HAL_OK) return dev;
+    if (dsi_write(4, (uint8_t *)lcdRegData28) != HAL_OK) return dev;
   #endif
 
   /** CABC : Content Adaptive Backlight Control section start >> */
   /* Note : defaut is 0 (lowest Brightness), 0xFF is highest Brightness, try 0x7F : intermediate value */
-  if (dsi_write(0, (uint8_t *)ShortRegData40) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData40) != HAL_OK) return dev;
 
   /* defaut is 0, try 0x2C - Brightness Control Block, Display Dimming & BackLight on */
-  if (dsi_write(0, (uint8_t *)ShortRegData41) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData41) != HAL_OK) return dev;
 
   /* defaut is 0, try 0x02 - image Content based Adaptive Brightness [Still Picture] */
-  if (dsi_write(0, (uint8_t *)ShortRegData42) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData42) != HAL_OK) return dev;
 
   /* defaut is 0 (lowest Brightness), 0xFF is highest Brightness */
-  if (dsi_write(0, (uint8_t *)ShortRegData43) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData43) != HAL_OK) return dev;
 
   /** CABC : Content Adaptive Backlight Control section end << */
 
   /* Send Command Display On */
-  if (dsi_write(0, (uint8_t *)ShortRegData44) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData44) != HAL_OK) return dev;
 
   /* NOP command */
-  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return dev;
 
   /* Send Command GRAM memory write (no parameters) : this initiates frame write via other DSI commands sent by */
   /* DSI host from LTDC incoming pixels in video mode */
-  if (dsi_write(0, (uint8_t *)ShortRegData45) != HAL_OK) return HAL_ERROR;
+  if (dsi_write(0, (uint8_t *)ShortRegData45) != HAL_OK) return dev;
 
 
-  if (OTM8009A_DisplayOn() != HAL_OK) return HAL_ERROR;
-  if (OTM8009A_SetBrightness(0xff) != HAL_OK) return HAL_ERROR;
+  if (OTM8009A_DisplayOn(dev) != HAL_OK) return dev;
+
+  /* TODO Implement PWM brightness */
+  if (OTM8009A_SetBrightness(dev, 0xff) != HAL_OK) return dev;
 
 
-  return HAL_OK;
+  /* Configure layers */
+  if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer1, 0) != HAL_OK) return dev;
+  if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer2, 1) != HAL_OK) return dev;
+  
+  if (Display_FillLayer(dev->Layer1, dev->BgLayer1)) return dev;
+  if (Display_FillLayer(dev->Layer2, dev->BgLayer2)) return dev;
+
+
+  dev->Lock = DISABLE;
+
+  return dev;
 }
 
 
@@ -406,8 +474,8 @@ __STATIC_INLINE HAL_StatusTypeDef dsi_write(uint32_t cnt, uint8_t* buf) {
 
 // --------------------------------------------------------------------------
 
-HAL_StatusTypeDef OTM8009A_DisplayOn(void) {
-  if (HAL_DSI_ShortWrite(&hdsi, 0, DSI_DCS_SHORT_PKT_WRITE_P1, OTM8009A_CMD_DISPON, 0x00) != HAL_OK) return HAL_ERROR;
+HAL_StatusTypeDef OTM8009A_DisplayOn(Display_TypeDef* dev) {
+  if (HAL_DSI_ShortWrite(dev->DSIDevHandler, 0, DSI_DCS_SHORT_PKT_WRITE_P1, OTM8009A_CMD_DISPON, 0x00) != HAL_OK) return HAL_ERROR;
   return HAL_OK;
 }
 
@@ -415,8 +483,8 @@ HAL_StatusTypeDef OTM8009A_DisplayOn(void) {
 
 // --------------------------------------------------------------------------
 
-HAL_StatusTypeDef OTM8009A_SetBrightness(uint8_t val) {
-  if (HAL_DSI_ShortWrite(&hdsi, 0, DSI_DCS_SHORT_PKT_WRITE_P1, OTM8009A_CMD_WRDISBV, val) != HAL_OK) return HAL_ERROR;
+HAL_StatusTypeDef OTM8009A_SetBrightness(Display_TypeDef* dev, uint8_t val) {
+  if (HAL_DSI_ShortWrite(dev->DSIDevHandler, 0, DSI_DCS_SHORT_PKT_WRITE_P1, OTM8009A_CMD_WRDISBV, val) != HAL_OK) return HAL_ERROR;
   return HAL_OK;
 }
 
@@ -449,7 +517,8 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillLayer(LTDC_LayerCfgTypeDef* 
   */
 HAL_StatusTypeDef __attribute__((weak)) Display_DrawPixel(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_t y, uint32_t color) {
   if (SDRAM_BusyStatusCheck(&hsdram1) != HAL_OK) return HAL_ERROR;
-  __O uint32_t* fb = (uint32_t*)(GET_POSITIOIN_ADDRESS(layer, x, y));
+  // __O uint32_t* fb = (uint32_t*)(GET_POSITIOIN_ADDRESS(layer, x, y));
+  __O uint32_t* fb = (uint32_t*)((layer->FBStartAdress + ((x * layer->ImageWidth) + y) * 4));
   *fb = color;
   return HAL_OK;
 }

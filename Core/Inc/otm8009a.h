@@ -227,7 +227,8 @@
 /* Exported macro ------------------------------------------------------------*/
 extern DSI_HandleTypeDef hdsi;
 extern SDRAM_HandleTypeDef hsdram1;
-
+extern DMA2D_HandleTypeDef hdma2d;
+extern LTDC_HandleTypeDef hltdc;
 
 
 
@@ -247,9 +248,9 @@ extern SDRAM_HandleTypeDef hsdram1;
 
 
 /* Exported functions prototypes ---------------------------------------------*/
-HAL_StatusTypeDef OTM8009A_Init(uint32_t);
-HAL_StatusTypeDef OTM8009A_DisplayOn(void);
-HAL_StatusTypeDef OTM8009A_SetBrightness(uint8_t);
+Display_TypeDef* OTM8009A_Init(void);
+HAL_StatusTypeDef OTM8009A_DisplayOn(Display_TypeDef*);
+HAL_StatusTypeDef OTM8009A_SetBrightness(Display_TypeDef*, uint8_t);
 
 
 

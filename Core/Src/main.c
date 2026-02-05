@@ -81,41 +81,6 @@ static void MX_I2C4_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-LTDC_LayerCfgTypeDef layer1 = {
-  .WindowX0      = L1_PADDING_LEFT,
-  .WindowX1      = (L1_HEIGHT + L1_PADDING_RIGHT),
-  .WindowY0      = L1_PADDING_BOTTOM,
-  .WindowY1      = (L1_WIDTH + L1_PADDING_TOP),
-  .PixelFormat   = LTDC_PIXEL_FORMAT_ARGB8888,
-  .FBStartAdress = L1_ADDR,
-  .Alpha         = 125,
-  .Alpha0        = 0,
-  .BlendingFactor1 = LTDC_BLENDING_FACTOR1_PAxCA,
-  .BlendingFactor2 = LTDC_BLENDING_FACTOR2_PAxCA,
-  .ImageWidth    = L1_HEIGHT,
-  .ImageHeight   = L1_WIDTH,
-  .Backcolor.Blue = 0x00,
-  .Backcolor.Green = 0x00,
-  .Backcolor.Red = 0x00,
-};
-
-LTDC_LayerCfgTypeDef layer2 = {
-  .WindowX0      = L2_PADDING_LEFT,
-  .WindowX1      = (L2_HEIGHT + L2_PADDING_RIGHT),
-  .WindowY0      = L2_PADDING_BOTTOM,
-  .WindowY1      = (L2_WIDTH + L2_PADDING_TOP),
-  .PixelFormat   = LTDC_PIXEL_FORMAT_ARGB8888,
-  .FBStartAdress = L2_ADDR,
-  .Alpha         = 125,
-  .Alpha0        = 0,
-  .BlendingFactor1 = LTDC_BLENDING_FACTOR1_PAxCA,
-  .BlendingFactor2 = LTDC_BLENDING_FACTOR2_PAxCA,
-  .ImageWidth    = L2_HEIGHT,
-  .ImageHeight   = L2_WIDTH,
-  .Backcolor.Blue = 0x00,
-  .Backcolor.Green = 0x00,
-  .Backcolor.Red = 0x00,
-};
 
 
 
@@ -225,31 +190,19 @@ int main(void)
   
   HAL_DSI_Start(&hdsi);
   
-  if (OTM8009A_Init(OTM8009A_FORMAT_RGB888) != HAL_OK) Error_Handler();
-
-  
-  if (HAL_LTDC_ConfigLayer(&hltdc, &layer1, 0) != HAL_OK) Error_Handler();
-  if (HAL_LTDC_ConfigLayer(&hltdc, &layer2, 1) != HAL_OK) Error_Handler();
-  
-  if (Display_FillLayer(&layer1, (ARGB8888_Lightblue | 0xff000000))) Error_Handler();
-  if (Display_FillLayer(&layer2, (ARGB8888_Apple | 0xff000000))) Error_Handler();
   
   // MX_LWIP_Init();
 
 
-  static TouchScreen_TypeDef touch_0 = {
-    .Model      = 6206,
-    .BusHandler = (uint32_t*)&hi2c4,
-    .BusAddr    = (FT6206_I2C_ADDR << 1),
-  };
+  // static TouchScreen_TypeDef touch_0 = {
+  //   .Model      = 6206,
+  //   .BusHandler = (uint32_t*)&hi2c4,
+  //   .BusAddr    = (FT6206_I2C_ADDR << 1),
+  // };
 
-  static Display_TypeDef display_0 = {
-    .Model    = 8009,
-    .Lock     = DISABLE,
-    .Layer1   = &layer1,
-    .Layer2   = &layer2,
-    .TouchDev = &touch_0,
-  };
+  Display_TypeDef* display_0 = OTM8009A_Init();
+
+  if (display_0->Lock == ENABLE) Error_Handler();
 
   /* USER CODE END 2 */
 
@@ -259,7 +212,7 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-    Display_Run(&display_0);
+    Display_Run(display_0);
     // MX_LWIP_Process();
     /* USER CODE BEGIN 3 */
   }
