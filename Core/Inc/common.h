@@ -44,7 +44,6 @@
   do { const char *p = s; while (*p) ITM_SendChar(*p++); } while (0)
 
 
-#define FT6206_I2C_ADDR   0x2a
 
 typedef struct {
   uint8_t               Width;

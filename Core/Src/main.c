@@ -224,7 +224,7 @@ int main(void)
   if (Display_FillLayer(&layer1, (ARGB8888_Lightblue | 0xff000000))) Error_Handler();
   if (Display_FillLayer(&layer2, (ARGB8888_Apple | 0xff000000))) Error_Handler();
   
-  // MX_LWIP_Init();
+  MX_LWIP_Init();
 
 
   static TouchScreen_TypeDef touch_0 = {
@@ -250,7 +250,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     Display_Run(&display_0);
-    // MX_LWIP_Process();
+    MX_LWIP_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * File Name          : OTM8009A.h
+  * File Name          : otm8009a.h
   * Description        : This file provides code for the configuration
   *                      of the OTM8009A TFT Display.
   ******************************************************************************

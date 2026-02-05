@@ -38,6 +38,7 @@ extern "C" {
 #include "fonts.h"
 #include "fmc.h"
 #include "otm8009a.h"
+#include "ft6206.h"
 #include "display.h"
 /* USER CODE END Includes */
 
