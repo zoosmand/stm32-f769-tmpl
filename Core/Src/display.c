@@ -23,7 +23,7 @@
 
 static __IO uint32_t step = 0;
 
-extern I2C_HandleTypeDef hi2c1;
+extern I2C_HandleTypeDef hi2c4;
 
 
 
@@ -65,21 +65,21 @@ void Display_Run(Display_TypeDef* dev) {
   } else {
     step = tick + SIMPLE_PAUSE;
     
-    // I2C_HandleTypeDef* touch_dev_handler = (I2C_HandleTypeDef*)dev->TouchDev->BusHandler;
-    // uint8_t id;
+    I2C_HandleTypeDef* touch_dev_handler = (I2C_HandleTypeDef*)dev->TouchDev->BusHandler;
+    uint8_t id;
     // uint8_t reg = 0xa8;
 
-    // HAL_I2C_Master_Transmit(&hi2c1, dev->TouchDev->BusAddr, &reg, 1, 20);
-    // HAL_I2C_Master_Receive (&hi2c1, dev->TouchDev->BusAddr | 0x01, &id, 1, 20);
-    // // HAL_I2C_Mem_Read(touch_dev_handler,
-    // //              (dev->TouchDev->BusAddr | 0x01),
-    // //              0xa6,
-    // //              I2C_MEMADD_SIZE_8BIT,
-    // //              &id,
-    // //              1,
-    // //              HAL_MAX_DELAY);
+    // HAL_I2C_Master_Transmit(&hi2c4, dev->TouchDev->BusAddr, &reg, 1, 20);
+    // HAL_I2C_Master_Receive (&hi2c4, dev->TouchDev->BusAddr | 0x01, &id, 1, 20);
+    HAL_I2C_Mem_Read(touch_dev_handler,
+                 dev->TouchDev->BusAddr,
+                 0xa8,
+                 I2C_MEMADD_SIZE_8BIT,
+                 &id,
+                 1,
+                 30);
 
-    // printf("FT6206 ID = 0x%02X\r\n", id);
+    printf("FT6206 ID = 0x%02X\r\n", id);
 
     // __HAL_RCC_I2C1_CLK_ENABLE();
     // __HAL_RCC_I2C1_FORCE_RESET();
@@ -87,10 +87,10 @@ void Display_Run(Display_TypeDef* dev) {
 
     HAL_Delay(200);
 
-    if (HAL_I2C_IsDeviceReady(&hi2c1, dev->TouchDev->BusAddr, 3, 50) != HAL_OK) {
-      // no ACK -> address/pins/reset/pullups/timing
-      __NOP();
-    }
+    // if (HAL_I2C_IsDeviceReady(&hi2c4, dev->TouchDev->BusAddr, 3, 50) != HAL_OK) {
+    //   // no ACK -> address/pins/reset/pullups/timing
+    //   __NOP();
+    // }
 
     // if (step % 2) {
     //   if (Display_FillRectangle(dev->Layer1, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return;

@@ -640,7 +640,7 @@ void HAL_SDRAM_MspDeInit(SDRAM_HandleTypeDef* hsdram){
   /* USER CODE END SDRAM_MspDeInit 1 */
 }
 
-
+/* USER CODE BEGIN 1 */
 /**
   * @brief I2C MSP Initialization
   * This function configures the hardware resources used in this example
@@ -683,7 +683,47 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     /* USER CODE BEGIN I2C1_MspInit 1 */
 
     /* USER CODE END I2C1_MspInit 1 */
+  }
+  else if(hi2c->Instance==I2C4)
+  {
+    /* USER CODE BEGIN I2C4_MspInit 0 */
 
+    /* USER CODE END I2C4_MspInit 0 */
+
+  /** Initializes the peripherals clock
+  */
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C4;
+    PeriphClkInitStruct.I2c4ClockSelection = RCC_I2C4CLKSOURCE_PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    /**I2C4 GPIO Configuration
+    PB7     ------> I2C4_SDA
+    PD12     ------> I2C4_SCL
+    */
+    GPIO_InitStruct.Pin = AUDIO_SDA_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF11_I2C4;
+    HAL_GPIO_Init(AUDIO_SDA_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = AUDIO_SCL_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF4_I2C4;
+    HAL_GPIO_Init(AUDIO_SCL_GPIO_Port, &GPIO_InitStruct);
+
+    /* Peripheral clock enable */
+    __HAL_RCC_I2C4_CLK_ENABLE();
+    /* USER CODE BEGIN I2C4_MspInit 1 */
+
+    /* USER CODE END I2C4_MspInit 1 */
   }
 
 }
@@ -718,8 +758,5 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
   }
 
 }
-
-
-/* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
