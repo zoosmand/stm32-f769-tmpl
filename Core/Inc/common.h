@@ -45,6 +45,9 @@
 
 
 
+/**
+ * @brief   Font type definition struct.
+ */
 typedef struct {
   uint8_t               Width;
   uint8_t               Height;
@@ -55,6 +58,9 @@ typedef struct {
 } Font_TypeDef;
 
 
+/**
+ * @brief   Touchscreen touch context type definition struct.
+ */
 typedef struct {
   uint8_t               Event;   // 0=down, 1=up, 2=contact
   uint16_t              RawX;
@@ -72,6 +78,10 @@ typedef struct {
   uint32_t              TouchCount;
 } TouchContext_TypeDef;
 
+
+/**
+ * @brief   Touchscreen states enumeration.
+ */
 typedef enum {
   TOUCH_IDLE,
   TOUCH_DOWN,
@@ -84,6 +94,10 @@ typedef enum {
   TOUCH_DISABLED,
 } TouchState_t;
 
+
+/**
+ * @brief   Touchscreen events enumeration.
+ */
 typedef enum {
   TOUCH_ON_DOWN,
   TOUCH_ON_UP,
@@ -92,6 +106,10 @@ typedef enum {
   TOUCH_ON_IDLE,
 } TouchEvent_t;
 
+
+/**
+ * @brief   Touchscreen device type definition struct.
+ */
 typedef struct {
   uint16_t              Model;
   uint8_t               Orientation;
