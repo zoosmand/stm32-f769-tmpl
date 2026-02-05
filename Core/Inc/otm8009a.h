@@ -255,17 +255,17 @@ HAL_StatusTypeDef OTM8009A_SetBrightness(Display_TypeDef*, uint8_t);
 
 
 
-HAL_StatusTypeDef __attribute__((weak)) Display_FillLayer(LTDC_LayerCfgTypeDef*, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_FillLayer(Display_TypeDef*, LTCDLayer_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawPixel(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawPixel(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawVLine(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawVLine(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawHLine(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawHLine(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
 /**
   * @brief  Draws a symbol on a layer of the display
@@ -276,7 +276,7 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(LTDC_LayerCfgTypeD
   * @param  ch: the target sysmbol to draw
   * @retval None
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, uint8_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(Display_TypeDef*, LTCDLayer_t, uint16_t*, uint16_t*, const Font_TypeDef*, uint8_t);
 
 /**
   * @brief  Draws a string on a layer of the display
@@ -288,11 +288,11 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef*
   * @param  wrap: wrap line flag 
   * @retval status of the operation
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, const char*, bool);
+HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(Display_TypeDef*, LTCDLayer_t, uint16_t*, uint16_t*, const Font_TypeDef*, const char*, bool);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
 #ifdef __cplusplus
 }

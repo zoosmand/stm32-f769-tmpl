@@ -107,14 +107,14 @@ void Display_Run(Display_TypeDef* dev) {
 
     // Display_DrawSymbol(dev->Layer2, &x, &y, &font, '3');
     // Display_DrawSymbol(dev->Layer2, &x, &y, &font, '4');
-    Display_PrintString(dev->Layer1, &x1, &y1, &font, "CoroideVO!86728543\n", false);
+    Display_PrintString(dev, L1, &x1, &y1, &font, "CoroideVO!86728543\n", false);
     
-    Display_PrintString(dev->Layer2, &x2, &y2, &font2, "1234567890123456789012345678901234567890123456789012345678901234567890\n", false);
+    Display_PrintString(dev, L2, &x2, &y2, &font2, "1234567890123456789012345678901234567890123456789012345678901234567890\n", false);
 
     // // Display_DrawVLine(dev->Layer2, 200, 220, 100, 3, (ARGB8888_Black | 0xff000000));
 
-    Display_DrawCircle(dev->Layer1, 100, 300, 50, 2, (ARGB8888_Blue | 0xff000000));
-    Display_FillCircle(dev->Layer2, 100, 200, 50, (ARGB8888_Blue | 0xff000000));
+    Display_DrawCircle(dev, L1, 100, 300, 50, 2, (ARGB8888_Blue | 0xff000000));
+    Display_FillCircle(dev, L2, 100, 200, 50, (ARGB8888_Blue | 0xff000000));
 
   }
 }
@@ -125,14 +125,14 @@ HAL_StatusTypeDef Display_TestSimplePrimitives(Display_TypeDef* dev, LTCDLayer_t
   
   // if (Display_FillRectangle(layer, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return HAL_ERROR;
 
-  LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
+  // LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
 
-  if (Display_DrawPixel(layer, 10, 10, (ARGB8888_Yellow | 0xff000000)) != HAL_OK) return HAL_ERROR;
+  if (Display_DrawPixel(dev, l, 10, 10, (ARGB8888_Yellow | 0xff000000)) != HAL_OK) return HAL_ERROR;
 
-  if (Display_DrawVLine(layer, 200, 320, 100, 3, (ARGB8888_Apple | 0xff000000)) != HAL_OK) return HAL_ERROR;
-  if (Display_DrawHLine(layer, 200, 320, 100, 2, (ARGB8888_Apple | 0xff000000)) != HAL_OK) return HAL_ERROR;
+  if (Display_DrawVLine(dev, l, 200, 320, 100, 3, (ARGB8888_Apple | 0xff000000)) != HAL_OK) return HAL_ERROR;
+  if (Display_DrawHLine(dev, l, 200, 320, 100, 2, (ARGB8888_Apple | 0xff000000)) != HAL_OK) return HAL_ERROR;
 
-  if (Display_DrawRectangle(layer, 350, 250, 104, 69, 4, (ARGB8888_Red | 0xff000000)) != HAL_OK) return HAL_ERROR;
+  if (Display_DrawRectangle(dev, l, 350, 250, 104, 69, 4, (ARGB8888_Red | 0xff000000)) != HAL_OK) return HAL_ERROR;
 
   return HAL_OK;
 }

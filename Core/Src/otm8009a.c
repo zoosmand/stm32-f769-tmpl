@@ -448,8 +448,8 @@ Display_TypeDef* OTM8009A_Init(void) {
   if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer1, 0) != HAL_OK) return dev;
   if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer2, 1) != HAL_OK) return dev;
   
-  if (Display_FillLayer(dev->Layer1, dev->BgLayer1)) return dev;
-  if (Display_FillLayer(dev->Layer2, dev->BgLayer2)) return dev;
+  if (Display_FillLayer(dev, L1, dev->BgLayer1)) return dev;
+  if (Display_FillLayer(dev, L2, dev->BgLayer2)) return dev;
 
 
   dev->Lock = DISABLE;
@@ -499,8 +499,9 @@ HAL_StatusTypeDef OTM8009A_SetBrightness(Display_TypeDef* dev, uint8_t val) {
   * @param  color: color
   * @retval None
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_FillLayer(LTDC_LayerCfgTypeDef* layer, uint32_t color) {
-  if (Display_FillRectangle(layer, 0, 0, layer->ImageHeight, layer->ImageWidth, color) != HAL_OK) return HAL_ERROR;
+HAL_StatusTypeDef __attribute__((weak)) Display_FillLayer(Display_TypeDef* dev, LTCDLayer_t l, uint32_t color) {
+  LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
+  if (Display_FillRectangle(dev, l, 0, 0, layer->ImageHeight, layer->ImageWidth, color) != HAL_OK) return HAL_ERROR;
   return HAL_OK;
 }
 
@@ -515,10 +516,11 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillLayer(LTDC_LayerCfgTypeDef* 
   * @param  color: color
   * @retval None
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawPixel(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_t y, uint32_t color) {
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawPixel(Display_TypeDef* dev, LTCDLayer_t l, uint16_t x, uint16_t y, uint32_t color) {
   if (SDRAM_BusyStatusCheck(&hsdram1) != HAL_OK) return HAL_ERROR;
-  // __O uint32_t* fb = (uint32_t*)(GET_POSITIOIN_ADDRESS(layer, x, y));
-  __O uint32_t* fb = (uint32_t*)((layer->FBStartAdress + ((x * layer->ImageWidth) + y) * 4));
+  LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
+  __O uint32_t* fb = (uint32_t*)(GET_POSITIOIN_ADDRESS(layer, x, y));
+  // __O uint32_t* fb = (uint32_t*)((layer->FBStartAdress + ((x * layer->ImageWidth) + y) * 4));
   *fb = color;
   return HAL_OK;
 }
@@ -535,8 +537,9 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawPixel(LTDC_LayerCfgTypeDef* 
   * @param  color: color
   * @retval None
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawVLine(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_t y, uint16_t h, uint16_t t, uint32_t color) {
-  if (Display_FillRectangle(layer, x, y, t, h, color) != HAL_OK) return HAL_ERROR;
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawVLine(Display_TypeDef* dev, LTCDLayer_t l, uint16_t x, uint16_t y, uint16_t h, uint16_t t, uint32_t color) {
+  LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
+  if (Display_FillRectangle(dev, l, x, y, t, h, color) != HAL_OK) return HAL_ERROR;
   return HAL_OK;
 }
 
@@ -553,8 +556,9 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawVLine(LTDC_LayerCfgTypeDef* 
   * @param  color: color
   * @retval None
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawHLine(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_t y, uint16_t w, uint16_t t, uint32_t color) {
-  if (Display_FillRectangle(layer, x, y, w, t, color) != HAL_OK) return HAL_ERROR;
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawHLine(Display_TypeDef* dev, LTCDLayer_t l, uint16_t x, uint16_t y, uint16_t w, uint16_t t, uint32_t color) {
+  LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
+  if (Display_FillRectangle(dev, l, x, y, w, t, color) != HAL_OK) return HAL_ERROR;
   return HAL_OK;
 }
 
@@ -569,11 +573,12 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawHLine(LTDC_LayerCfgTypeDef* 
   * @param  color: color
   * @retval None
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t t, uint32_t color) {
-  if (Display_DrawHLine(layer, x, y, w, t, color) != HAL_OK) return HAL_ERROR;
-  if (Display_DrawHLine(layer, x, (y + h), (w + t), t, color) != HAL_OK) return HAL_ERROR;
-  if (Display_DrawVLine(layer, x, y, h, t, color) != HAL_OK) return HAL_ERROR;
-  if (Display_DrawVLine(layer, (x + w), y, (h + t), t, color) != HAL_OK) return HAL_ERROR;
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(Display_TypeDef* dev, LTCDLayer_t l, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t t, uint32_t color) {
+  LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
+  if (Display_DrawHLine(dev, l, x, y, w, t, color) != HAL_OK) return HAL_ERROR;
+  if (Display_DrawHLine(dev, l, x, (y + h), (w + t), t, color) != HAL_OK) return HAL_ERROR;
+  if (Display_DrawVLine(dev, l, x, y, h, t, color) != HAL_OK) return HAL_ERROR;
+  if (Display_DrawVLine(dev, l, (x + w), y, (h + t), t, color) != HAL_OK) return HAL_ERROR;
   return HAL_OK;
 }
 
@@ -589,7 +594,8 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(LTDC_LayerCfgTypeD
   * @param  color: color
   * @retval None
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(LTDC_LayerCfgTypeDef* layer, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t color) {
+HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef* dev, LTCDLayer_t l, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t color) {
+  LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
   if ((x + w - 1) >= layer->ImageHeight) return HAL_ERROR;
   if ((y + h - 1) >= layer->ImageWidth) return HAL_ERROR;
 
@@ -610,21 +616,23 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(LTDC_LayerCfgTypeD
 
 // --------------------------------------------------------------------------
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(LTDC_LayerCfgTypeDef* layer, uint16_t x0, uint16_t y0, uint16_t r, uint16_t t, uint32_t color) {
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(Display_TypeDef* dev, LTCDLayer_t l, uint16_t x0, uint16_t y0, uint16_t r, uint16_t t, uint32_t color) {
   int16_t x = 0;
   int16_t y = r;
   int16_t d = 1 - r;
 
-  while (x <= y) {
-    Display_DrawHLine(layer, (x0 + x - t), (y0 + y), t, t, color);
-    Display_DrawHLine(layer, (x0 + x - t), (y0 - y), t, t, color);
-    Display_DrawHLine(layer, (x0 + y - t), (y0 + x), t, t, color);
-    Display_DrawHLine(layer, (x0 + y - t), (y0 - x), t, t, color);
+  // LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
 
-    Display_DrawHLine(layer, (x0 - x - t), (y0 + y), t, t, color);
-    Display_DrawHLine(layer, (x0 - x - t), (y0 - y), t, t, color);
-    Display_DrawHLine(layer, (x0 - y - t), (y0 + x), t, t, color);
-    Display_DrawHLine(layer, (x0 - y - t), (y0 - x), t, t, color);
+  while (x <= y) {
+    Display_DrawHLine(dev, l, (x0 + x - t), (y0 + y), t, t, color);
+    Display_DrawHLine(dev, l, (x0 + x - t), (y0 - y), t, t, color);
+    Display_DrawHLine(dev, l, (x0 + y - t), (y0 + x), t, t, color);
+    Display_DrawHLine(dev, l, (x0 + y - t), (y0 - x), t, t, color);
+
+    Display_DrawHLine(dev, l, (x0 - x - t), (y0 + y), t, t, color);
+    Display_DrawHLine(dev, l, (x0 - x - t), (y0 - y), t, t, color);
+    Display_DrawHLine(dev, l, (x0 - y - t), (y0 + x), t, t, color);
+    Display_DrawHLine(dev, l, (x0 - y - t), (y0 - x), t, t, color);
 
     if (d < 0) {
       d += 2 * x + 3;
@@ -643,17 +651,19 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(LTDC_LayerCfgTypeDef*
 
 // --------------------------------------------------------------------------
 
-HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(LTDC_LayerCfgTypeDef* layer, uint16_t x0, uint16_t y0, uint16_t r, uint32_t color) {
+HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(Display_TypeDef* dev, LTCDLayer_t l, uint16_t x0, uint16_t y0, uint16_t r, uint32_t color) {
   int16_t x = 0;
   int16_t y = r;
   int16_t d = 1 - r;
 
+  // LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
+
   while (x <= y) {
 
-    Display_DrawHLine(layer, (x0 - x - 1), (y0 + y), (2 * x + 1), 1, color);
-    Display_DrawHLine(layer, (x0 - x - 1), (y0 - y), (2 * x + 1), 1, color);
-    Display_DrawHLine(layer, (x0 - y - 1), (y0 + x), (2 * y + 1), 1, color);
-    Display_DrawHLine(layer, (x0 - y - 1), (y0 - x), (2 * y + 1), 1, color);
+    Display_DrawHLine(dev, l, (x0 - x - 1), (y0 + y), (2 * x + 1), 1, color);
+    Display_DrawHLine(dev, l, (x0 - x - 1), (y0 - y), (2 * x + 1), 1, color);
+    Display_DrawHLine(dev, l, (x0 - y - 1), (y0 + x), (2 * y + 1), 1, color);
+    Display_DrawHLine(dev, l, (x0 - y - 1), (y0 - x), (2 * y + 1), 1, color);
 
     if (d < 0) {
       d += 2 * x + 3;
@@ -672,13 +682,15 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(LTDC_LayerCfgTypeDef*
 
 // --------------------------------------------------------------------------
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef* layer, uint16_t* x, uint16_t* y, const Font_TypeDef *f, uint8_t ch) {
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(Display_TypeDef* dev, LTCDLayer_t l, uint16_t* x, uint16_t* y, const Font_TypeDef *f, uint8_t ch) {
   if ((ch > 126) || (ch < 32)) {
     if (ch == 176) ch = 95;
     else return HAL_ERROR;
   } else {
     ch -= 32;
   }
+
+  LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
   
   if ((*x + f->Width - 1) >= layer->ImageHeight) return HAL_ERROR;
   if ((*y + f->Height - 1) >= layer->ImageWidth) return HAL_ERROR;
@@ -712,7 +724,7 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef*
 
 // --------------------------------------------------------------------------
 
-HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef* layer, uint16_t *x, uint16_t *y, const Font_TypeDef *f, const char *str, bool wrap) {
+HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(Display_TypeDef* dev, LTCDLayer_t l, uint16_t *x, uint16_t *y, const Font_TypeDef *f, const char *str, bool wrap) {
   
   uint16_t char_count = 0;
   
@@ -724,12 +736,14 @@ HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef
   
   while (!vblank_ready) __WFI();
   vblank_ready = 0;
+
+  LTDC_LayerCfgTypeDef* layer = (l == L1) ? dev->Layer1 : dev->Layer2;
   
   SCB_CleanDCache_by_Addr((uint32_t*)layer->FBStartAdress, layer->ImageWidth * layer->ImageHeight * 4);
   // HAL_Delay(10);
   
   for (uint16_t ic = 0; ic < char_count; ic++) {
-    Display_DrawSymbol(layer, x, y, f, str[ic]);
+    Display_DrawSymbol(dev, l, x, y, f, str[ic]);
   }
   
   return HAL_OK;
