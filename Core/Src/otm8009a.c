@@ -390,8 +390,6 @@ Display_TypeDef* OTM8009A_Init(void) {
   /* Send command to configure display in landscape orientation mode. By default the orientation mode is portrait  */
   // Vertical
   #ifndef _LANDSCAPE_
-    static const uint8_t ShortRegData27[] = { 0xc1, 0x0e };
-    static const uint8_t ShortRegData28[] = { OTM8009A_CMD_NOP, 0xa6 };
     static const uint8_t ShortRegData39[] = { OTM8009A_CMD_MADCTR, OTM8009A_MADCTR_MODE_LANDSCAPE };
     /*
       * CASET value (Column Address Set) : X direction LCD GRAM boundaries
@@ -402,8 +400,8 @@ Display_TypeDef* OTM8009A_Init(void) {
       */
     static const uint8_t lcdRegData27[] = {0x00, 0x00, 0x03, 0x1f, OTM8009A_CMD_CASET};
     /*
-      * XS[15:0] = 0x000 = 0, XE[15:0] = 0x1DF = 479 for portrait mode : apply to CASET
-      * YS[15:0] = 0x000 = 0, YE[15:0] = 0x1DF = 479 for landscape mode : apply to PASET
+      * XS[15:0] = 0x000 = 0, XE[15:0] = 0x1df = 479 for portrait mode : apply to CASET
+      * YS[15:0] = 0x000 = 0, YE[15:0] = 0x1df = 479 for landscape mode : apply to PASET
     */
     static const uint8_t lcdRegData28[] = {0x00, 0x00, 0x01, 0xdf, OTM8009A_CMD_PASET};
 

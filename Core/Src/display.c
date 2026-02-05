@@ -80,8 +80,8 @@ void Display_Run(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
 
     if (Display_DrawPixel(screen, L1, 10, 10, (ARGB8888_Yellow | 0xff000000)) != HAL_OK) return;
 
-    if (Display_DrawVLine(screen, L2, 200, 320, 100, 3, (ARGB8888_Apple | 0xff000000)) != HAL_OK) return;
-    if (Display_DrawHLine(screen, L1, 200, 320, 100, 2, (ARGB8888_Apple | 0xff000000)) != HAL_OK) return;
+    if (Display_DrawVLine(screen, L2, 200, 320, 100, 3, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
+    if (Display_DrawHLine(screen, L1, 200, 320, 100, 2, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
 
     if (Display_DrawRectangle(screen, L2, 350, 250, 104, 69, 4, (ARGB8888_Red | 0xff000000)) != HAL_OK) return;
     if (Display_FillRectangle(screen, L2, 550, 350, 104, 69, (ARGB8888_Red | 0xff000000)) != HAL_OK) return;
@@ -89,8 +89,6 @@ void Display_Run(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
     if (Display_DrawCircle(screen, L1, 100, 300, 50, 2, (ARGB8888_Blue | 0xff000000)) != HAL_OK) return;
 
     if (Display_FillCircle(screen, L2, 100, 200, 50, (ARGB8888_Blue | 0xff000000)) != HAL_OK) return;
-
-
 
   }
 }
