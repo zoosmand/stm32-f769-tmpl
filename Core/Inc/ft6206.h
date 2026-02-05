@@ -30,6 +30,7 @@ extern I2C_HandleTypeDef hi2c4;
 /* Exported functions prototypes ---------------------------------------------*/
 TouchScreen_TypeDef* FT6206_Init(void);
 
+HAL_StatusTypeDef __attribute__((weak)) TouchScreen_Process(TouchScreen_TypeDef*);
 
 
 #ifdef __cplusplus

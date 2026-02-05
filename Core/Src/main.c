@@ -846,10 +846,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(CEC_CLK_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LCD_INT_Pin */
-  GPIO_InitStruct.Pin = LCD_INT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(LCD_INT_GPIO_Port, &GPIO_InitStruct);
+  // GPIO_InitStruct.Pin = LCD_INT_Pin;
+  // GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
+  // GPIO_InitStruct.Pull = GPIO_NOPULL;
+  // HAL_GPIO_Init(LCD_INT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ARD_D5_PWM_Pin */
   GPIO_InitStruct.Pin = ARD_D5_PWM_Pin;

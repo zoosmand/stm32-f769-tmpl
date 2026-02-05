@@ -15,8 +15,34 @@
 
 
 
+/* --- private functions --- */
+static void tc_int_event_callback(void);
 
 
+/* --- public variables --- */
+EXTI_HandleTypeDef exti_line_touch = {
+  .Line             = 13,
+  .PendingCallback  = tc_int_event_callback,
+};
+TouchState_t touch_activated_flag = TOUCH_IDLE;
+
+
+
+
+
+
+
+// --------------------------------------------------------------------------
+
+static void tc_int_event_callback(void) {
+  touch_activated_flag = TOUCH_ACTIVE;
+}
+
+
+
+
+
+// --------------------------------------------------------------------------
 
 TouchScreen_TypeDef* FT6206_Init(void) {
 
@@ -29,6 +55,20 @@ TouchScreen_TypeDef* FT6206_Init(void) {
 
   TouchScreen_TypeDef* dev = &touch_0;
   I2C_HandleTypeDef* bus_handler = (I2C_HandleTypeDef*)dev->BusHandler;
+
+
+  /* Initialize RESET Pin */
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  
+  /* Initialize INT Pin */
+  GPIO_InitStruct.Pin = LCD_INT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LCD_INT_GPIO_Port, &GPIO_InitStruct);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 
   if (dev->State == TOUCH_DISABLED) dev->State = TOUCH_LOCKED;
@@ -46,4 +86,17 @@ TouchScreen_TypeDef* FT6206_Init(void) {
   dev->State = TOUCH_IDLE;
 
   return dev;
+}
+
+
+
+
+
+// --------------------------------------------------------------------------
+
+HAL_StatusTypeDef __attribute__((weak)) TouchScreen_Process(TouchScreen_TypeDef* dev) {
+
+  dev->Event = TOUCH_ON_UP;
+  touch_activated_flag = TOUCH_IDLE;
+  return HAL_OK;
 }
