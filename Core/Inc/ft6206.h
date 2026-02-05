@@ -22,7 +22,13 @@
 #include "main.h"
 
 
+extern I2C_HandleTypeDef hi2c4;
+
 #define FT6206_I2C_ADDR   0x2a
+
+
+/* Exported functions prototypes ---------------------------------------------*/
+TouchScreen_TypeDef* FT6206_Init(void);
 
 
 

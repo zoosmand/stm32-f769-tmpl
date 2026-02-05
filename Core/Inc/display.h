@@ -10,9 +10,13 @@
 
 
 
-HAL_StatusTypeDef Display_TestSimplePrimitives(Display_TypeDef*, LTCDLayer_t);
+#define SIMPLE_PAUSE 1000U;
 
-void Display_Run(Display_TypeDef*);
+
+void Display_Run(Display_TypeDef*, TouchScreen_TypeDef*);
+
+
+
 
 #ifdef __cplusplus
 }
