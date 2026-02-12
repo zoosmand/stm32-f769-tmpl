@@ -70,8 +70,6 @@ void Display_Run(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
   if (touch->State == TOUCH_LOCKED) return;
 
 
-
-
   if (touch_activated_flag != TOUCH_ACTIVE) return;
 
   TouchScreen_Process(touch);

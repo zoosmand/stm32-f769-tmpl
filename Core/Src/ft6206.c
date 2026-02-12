@@ -21,7 +21,7 @@ static void tc_int_event_callback(void);
 
 /* --- public variables --- */
 EXTI_HandleTypeDef exti_line_touch = {
-  .Line             = 13,
+  .Line             = LCD_INT_Pin_Pos,
   .PendingCallback  = tc_int_event_callback,
 };
 TouchState_t touch_activated_flag = TOUCH_IDLE;
