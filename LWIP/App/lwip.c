@@ -121,17 +121,9 @@ void MX_LWIP_Init(void)
 
 /* USER CODE BEGIN 3 */
 
-  if (!phy_wait_ready(2000)) Error_Handler();
+  if (!phy_wait_ready(2000)) printf("The RJ-45 cable might not be connected.\n");
   
   dhcp_start(&gnetif);
-  while (gnetif.ip_addr.addr == 0)
-  {
-    ethernetif_input(&gnetif);
-    sys_check_timeouts();
-  }
-  // printf("IP: %s\n", ipaddr_ntoa(&gnetif.ip_addr));
-  // printf("MASK: %s\n", ipaddr_ntoa(&gnetif.netmask));
-  // printf("GW: %s\n", ipaddr_ntoa(&gnetif.gw));
 
 /* USER CODE END 3 */
 }

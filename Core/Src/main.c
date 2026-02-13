@@ -187,7 +187,7 @@ int main(void)
   
   HAL_DSI_Start(&hdsi);
   
-  // MX_LWIP_Init();
+  MX_LWIP_Init();
 
 
 
@@ -195,7 +195,7 @@ int main(void)
   if (display_0->Lock == ENABLE) Error_Handler();
 
   TouchScreen_TypeDef* touch_0 = FT6206_Init();
-  if (touch_0->State == TOUCH_LOCKED) Error_Handler();
+  if ((touch_0->State == TOUCH_LOCKED) | (touch_0->State == TOUCH_DISABLED)) Error_Handler();
 
   /* USER CODE END 2 */
 
@@ -206,7 +206,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     Display_Run(display_0, touch_0);
-    // MX_LWIP_Process();
+    MX_LWIP_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
