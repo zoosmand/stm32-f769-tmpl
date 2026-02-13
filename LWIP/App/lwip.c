@@ -121,7 +121,7 @@ void MX_LWIP_Init(void)
 
 /* USER CODE BEGIN 3 */
 
-  if (!phy_wait_ready(2000)) printf("The RJ-45 cable might not be connected.\n");
+  if (!phy_wait_ready(2000)) printf("The RJ-45 cable might not be connected.\r\n");
   
   dhcp_start(&gnetif);
 

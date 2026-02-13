@@ -187,7 +187,7 @@ int main(void)
   
   HAL_DSI_Start(&hdsi);
   
-  MX_LWIP_Init();
+  // MX_LWIP_Init();
 
 
 
@@ -206,7 +206,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     Display_Run(display_0, touch_0);
-    MX_LWIP_Process();
+    // MX_LWIP_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

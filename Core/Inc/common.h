@@ -62,7 +62,7 @@ typedef struct {
  * @brief   Touchscreen touch context type definition struct.
  */
 typedef struct {
-  uint8_t               Event;   // 0=down, 1=up, 2=contact
+  uint8_t               Event;
   uint16_t              RawX;
   uint16_t              RawY;
   uint16_t              X;

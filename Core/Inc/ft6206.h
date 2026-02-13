@@ -63,6 +63,8 @@ extern I2C_HandleTypeDef hi2c4;
 #define FT6x02_FOCALTECH_ID         0xa8
 #define FT6x02_RELEASE_CODE         0xaf
 #define FT6x02_STATE                0xbc
+#define FT6x02_DEV_DATA             FT6x02_LIB_VER_H
+#define FT6x02_DYN_DATA             FT6x02_DEV_MODE
 
 
 #define FT6x02_GEST_MOVE_UP         0x10
@@ -72,6 +74,10 @@ extern I2C_HandleTypeDef hi2c4;
 #define FT6x02_GEST_MOVE_ZOOM_IN    0x48
 #define FT6x02_GEST_MOVE_ZOOM_OUT   0x49
 #define FT6x02_GEST_MOVE_NOOP       0x00
+
+
+#define FT6x02_FOCALTECH_ID_VALUE   0x11
+
 
 /* Exported functions prototypes ---------------------------------------------*/
 TouchScreen_TypeDef* FT6206_Init(void);

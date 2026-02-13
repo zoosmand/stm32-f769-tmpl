@@ -16,7 +16,8 @@
 
 
 /* --- private functions --- */
-static void tc_int_event_callback(void);
+__STATIC_INLINE void tc_int_event_callback(void);
+__STATIC_INLINE HAL_StatusTypeDef tc_read(TouchScreen_TypeDef*);
 
 
 /* --- public variables --- */
@@ -34,7 +35,7 @@ TouchState_t touch_activated_flag = TOUCH_IDLE;
 
 // --------------------------------------------------------------------------
 
-static void tc_int_event_callback(void) {
+__STATIC_INLINE void tc_int_event_callback(void) {
   touch_activated_flag = TOUCH_ACTIVE;
 }
 
@@ -75,13 +76,19 @@ TouchScreen_TypeDef* FT6206_Init(void) {
   if (bus_handler->Lock == HAL_LOCKED) return dev;
 
 
-  uint8_t id;
+  uint8_t raw_data[8];
 
 
   if (HAL_I2C_IsDeviceReady(bus_handler, dev->BusAddr, 3, 50) != HAL_OK) return dev;
 
-  HAL_I2C_Mem_Read(bus_handler, dev->BusAddr, 0xa8, I2C_MEMADD_SIZE_8BIT, &id, 1, 30);
-  printf("FT6206 ID = 0x%02X\r\n", id);
+  HAL_I2C_Mem_Read(bus_handler, dev->BusAddr, FT6x02_DEV_DATA, I2C_MEMADD_SIZE_8BIT, raw_data, 8, 30);
+  
+  if (raw_data[7] != FT6x02_FOCALTECH_ID_VALUE) {
+    printf("FT6x06 ID = 0x%02X, that is not supported by current firmware.\r\n", raw_data[7]);
+    return dev;
+  }
+
+  /* TODO distribute other hardware data like LIB_VER or FIRMID */
 
   dev->State = TOUCH_IDLE;
 
@@ -96,7 +103,33 @@ TouchScreen_TypeDef* FT6206_Init(void) {
 
 HAL_StatusTypeDef __attribute__((weak)) TouchScreen_Process(TouchScreen_TypeDef* dev) {
 
+  if (tc_read(dev) != HAL_OK) return HAL_ERROR;
+  
   dev->Event = TOUCH_ON_UP;
   touch_activated_flag = TOUCH_IDLE;
+  return HAL_OK;
+}
+
+
+
+
+// --------------------------------------------------------------------------
+
+__STATIC_INLINE HAL_StatusTypeDef tc_read(TouchScreen_TypeDef* dev) {
+
+  if (dev->State != TOUCH_IDLE) return HAL_ERROR;
+  
+  uint8_t raw_data[16];
+
+  if (HAL_I2C_Mem_Read((I2C_HandleTypeDef*)dev->BusHandler, dev->BusAddr, FT6x02_DYN_DATA, I2C_MEMADD_SIZE_8BIT, raw_data, sizeof(raw_data), 30) != HAL_OK) return HAL_ERROR;
+
+  // dev->Context->Touches = touches;
+  // dev->Context->Event   = (buf[1] >> 6) & 0x03;
+  dev->Context->RawX    = ((raw_data[3] & 0x0f) << 8) | raw_data[4];
+  dev->Context->RawY    = ((raw_data[5] & 0x0f) << 8) | raw_data[6];
+
+  printf("X: %d, Y: %d\r\n", dev->Context->RawX, dev->Context->RawY);
+
+
   return HAL_OK;
 }
