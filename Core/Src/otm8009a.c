@@ -600,9 +600,13 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef* d
     if (SDRAM_BusyStatusCheck(dev->SDRAMDevHandler) != HAL_OK) return HAL_ERROR;
 
     __O uint32_t* fb = (uint32_t*)(GET_POSITIOIN_ADDRESS(l, (x + (iw * 1)), y)); 
+    // __IO uint32_t* bb = (uint32_t*)(GET_BUF2_ADDRESS(l, (x + (iw * 1)), y)); 
     
     uint16_t hh = h;
-    while (hh--) *fb++ = color;
+    while (hh--) {
+      // *bb++ = *fb;
+      *fb++ = color;
+    }
   }
 
   return HAL_OK;
