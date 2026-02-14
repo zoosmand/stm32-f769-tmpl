@@ -81,10 +81,16 @@
 
 #define L1_BYTES                    (uint32_t)(L1_HEIGHT * L1_WIDTH * 4)
 #define L2_BYTES                    (uint32_t)(L2_HEIGHT * L2_WIDTH * 4)
+
 #define L1_ADDR                     SDRAM_START_ADDR
-#define L2_ADDR                     (uint32_t)(L1_ADDR + 0x00800000)
-#define L1_MAX_ADDR                 (uint32_t)(L1_ADDR - 1)
-#define L2_MAX_ADDR                 SDRAM_MAX_ADDR
+#define L1_MAX_ADDR                 (uint32_t)(SDRAM_START_ADDR + 0x00200000 - 1)  // 2Mb
+#define L2_ADDR                     (uint32_t)(SDRAM_START_ADDR + 0x00200000)
+#define L2_MAX_ADDR                 (uint32_t)(SDRAM_START_ADDR + 0x00400000 - 1)  // 2Mb
+
+#define L1_BUF_ADDR                 (uint32_t)(SDRAM_START_ADDR + 0x00600000)
+#define L1_MAX_BUF_ADDR             (uint32_t)(SDRAM_START_ADDR + 0x00600000 - 1)  // 2Mb
+#define L2_BUF_ADDR                 (uint32_t)(SDRAM_START_ADDR + 0x00800000)
+#define L2_MAX_BUF_ADDR             (uint32_t)(SDRAM_START_ADDR + 0x00800000 - 1)  // 2Mb
 
 
 

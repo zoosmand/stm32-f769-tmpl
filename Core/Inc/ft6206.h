@@ -75,8 +75,20 @@ extern I2C_HandleTypeDef hi2c4;
 #define FT6x02_GEST_MOVE_ZOOM_OUT   0x49
 #define FT6x02_GEST_MOVE_NOOP       0x00
 
+#define FT6x02_EVENT_PRESS_DOWN     0b00
+#define FT6x02_EVENT_LIFT_UP        0b01
+#define FT6x02_EVENT_CONTACT        0b10
+#define FT6x02_EVENT_NOOP           0b11
+
 
 #define FT6x02_FOCALTECH_ID_VALUE   0x11
+
+
+#define TOUCH_STABLE_COUNT          3   // consecutive reads
+#define TOUCH_MOVE_THRESHOLD        3   // pixels
+#define TOUCH_RELEASE_COUNT         5   // consecutive reads
+#define TOUCH_DEADZONE              3   // pixels
+#define TOUCH_RELEASE_THRESHOLD     500 // ms
 
 
 /* Exported functions prototypes ---------------------------------------------*/
