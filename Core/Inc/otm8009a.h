@@ -40,12 +40,14 @@
 #ifdef _PORTRAIT_
   #define DISPLAY_HEIGHT              (uint16_t)(800)
   #define DISPLAY_WIDTH               (uint16_t)(480)
+  #define ORIENTATION                 0
 #endif
 
 // -------- Landscape --------
 #ifdef _LANDSCAPE_
   #define DISPLAY_HEIGHT             (uint16_t)(480)
   #define DISPLAY_WIDTH              (uint16_t)(800)
+  #define ORIENTATION                 1
 #endif
 
 
