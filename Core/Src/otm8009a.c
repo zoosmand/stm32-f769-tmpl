@@ -109,7 +109,7 @@ static LTDC_LayerCfgTypeDef layer1 = {
   .WindowY1         = (L1_WIDTH + L1_PADDING_TOP),
   .PixelFormat      = LTDC_PIXEL_FORMAT_ARGB8888,
   .FBStartAdress    = L1_ADDR,
-  .Alpha            = 125,
+  .Alpha            = 255,
   .Alpha0           = 0,
   .BlendingFactor1  = LTDC_BLENDING_FACTOR1_PAxCA,
   .BlendingFactor2  = LTDC_BLENDING_FACTOR2_PAxCA,
@@ -444,10 +444,10 @@ Display_TypeDef* OTM8009A_Init(void) {
 
   /* Configure layers */
   if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer1, 0) != HAL_OK) return dev;
-  if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer2, 1) != HAL_OK) return dev;
+  // if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer2, 1) != HAL_OK) return dev;
   
   if (Display_FillLayer(dev, L1, dev->BgLayer1)) return dev;
-  if (Display_FillLayer(dev, L2, dev->BgLayer2)) return dev;
+  // if (Display_FillLayer(dev, L2, dev->BgLayer2)) return dev;
 
 
   dev->Lock = DISABLE;
@@ -595,19 +595,11 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef* d
   if ((x + w - 1) >= l->ImageHeight) return HAL_ERROR;
   if ((y + h - 1) >= l->ImageWidth) return HAL_ERROR;
 
-  for (uint32_t iw = 0; iw < w ; iw++) {
+  hdma2d.Instance->OOR = l->ImageWidth - h;
 
-    if (SDRAM_BusyStatusCheck(dev->SDRAMDevHandler) != HAL_OK) return HAL_ERROR;
+  if (HAL_DMA2D_Start(dev->DMADevHandler, color, GET_POSITIOIN_ADDRESS(l, x, y), h, w) != HAL_OK) return HAL_ERROR;
 
-    __O uint32_t* fb = (uint32_t*)(GET_POSITIOIN_ADDRESS(l, (x + (iw * 1)), y)); 
-    // __IO uint32_t* bb = (uint32_t*)(GET_BUF2_ADDRESS(l, (x + (iw * 1)), y)); 
-    
-    uint16_t hh = h;
-    while (hh--) {
-      // *bb++ = *fb;
-      *fb++ = color;
-    }
-  }
+  HAL_DMA2D_PollForTransfer(dev->DMADevHandler, HAL_MAX_DELAY);
 
   return HAL_OK;
 }

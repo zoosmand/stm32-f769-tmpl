@@ -64,10 +64,10 @@ __STATIC_INLINE void on_up(Display_TypeDef* screen, TouchScreen_TypeDef* touch) 
 
   uint16_t x1 = 40;
   uint16_t y1 = 40;
-  Display_FillRectangle(screen, L2, 40, 40, (font.Width * 12), font.Height, font.Bgcolor);
-  Display_PrintString(screen, L2, &x1, &y1, &font, position, false);
+  Display_FillRectangle(screen, L1, 40, 40, (font.Width * 12), font.Height, font.Bgcolor);
+  Display_PrintString(screen, L1, &x1, &y1, &font, position, false);
 
-  if (Display_DrawVLine(screen, L2, touch->Context->X, 0, screen->Height, 3, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
+  if (Display_DrawVLine(screen, L1, touch->Context->X, 0, screen->Height, 3, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
   if (Display_DrawHLine(screen, L1, 0, touch->Context->Y, screen->Width, 2, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
 
 
