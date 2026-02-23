@@ -17,7 +17,7 @@
 
 
 
-__IO uint8_t vblank_ready = 0;
+__IO uint8_t swap_pending = 0;
 
 /*
  * @brief Constant tables of register settings used to transmit DSI
@@ -602,9 +602,14 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef* d
 
   dev->DMADevHandler->Instance->OOR = l->ImageWidth - h;
 
+
+  /* TODO add getting position of the back buffer always, then it will be swapped */
+
   if (HAL_DMA2D_Start(dev->DMADevHandler, color, GET_POSITIOIN_ADDRESS(l, x, y), h, w) != HAL_OK) return HAL_ERROR;
 
   HAL_DMA2D_PollForTransfer(dev->DMADevHandler, HAL_MAX_DELAY);
+
+  swap_pending = 1;
 
   return HAL_OK;
 }
@@ -727,8 +732,8 @@ HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(Display_TypeDef* dev
   
   char_count--;
   
-  while (!vblank_ready) __WFI();
-  vblank_ready = 0;
+  // while (!swap_pending) __WFI();
+  // swap_pending = 0;
 
   LTDC_LayerCfgTypeDef* l = (layer == L1) ? dev->Layer1 : dev->Layer2;
   
@@ -746,15 +751,24 @@ HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(Display_TypeDef* dev
 // --------------------------------------------------------------------------
 
 void HAL_LTDC_LineEventCallback(LTDC_HandleTypeDef *hltdc) {
-  if (hltdc->Instance == LTDC) {
-    /* We are now in VBlank */
-    vblank_ready = 1;
-    /* Re-arm the interrupt */
-    #ifdef _PORTRAIT_
-      HAL_LTDC_ProgramLineEvent(hltdc, _HSA_ + _HBP_ + DISPLAY_WIDTH - 1);
-    #endif
-    #ifdef _LANDSCAPE_
-      HAL_LTDC_ProgramLineEvent(hltdc, _VSA_ + _VBP_ + DISPLAY_HEIGHT - 1);
-    #endif
+  /* We are now in VBlank */
+  if (swap_pending == 1) {
+
+    /* TODO add LTDC Layers recognition */
+    hltdc->LayerCfg[0].FBStartAdress = ???;
+    __HAL_LTDC_RELOAD_CONFIG(hltdc);
+        
+    // swap pointers
+    /* TODO add swapping buggers pointers */
+
+    swap_pending = 0;
   }
+
+  /* Re-arm the interrupt */
+  #ifdef _PORTRAIT_
+    HAL_LTDC_ProgramLineEvent(hltdc, _HSA_ + _HBP_ + DISPLAY_WIDTH - 1);
+  #endif
+  #ifdef _LANDSCAPE_
+    HAL_LTDC_ProgramLineEvent(hltdc, _VSA_ + _VBP_ + DISPLAY_HEIGHT - 1);
+  #endif
 }
