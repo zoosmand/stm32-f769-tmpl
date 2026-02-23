@@ -145,6 +145,20 @@ static LTDC_LayerCfgTypeDef layer2 = {
 __STATIC_INLINE HAL_StatusTypeDef dsi_write(uint32_t, uint8_t*);
 
 
+/**
+  * @brief  Fills rectangle on an LTDC layer of display with the given color.
+  * @param  dev: pointer to the display struct
+  * @param  layer: number of LTDC layer
+  * @param  x: x coordinate of left-down corner
+  * @param  y: y coordinate of left-down corner
+  * @param  w: weight of a rectangle
+  * @param  h: height of a rectangle
+  * @param  color: color
+  * @retval status of operation
+  */
+HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+
+
 
 
 
@@ -444,11 +458,10 @@ Display_TypeDef* OTM8009A_Init(void) {
 
   /* Configure layers */
   if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer1, 0) != HAL_OK) return dev;
+  /* TODO implement the usage of LTDC Layer 2 */
   // if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer2, 1) != HAL_OK) return dev;
   
   if (Display_FillLayer(dev, L1, dev->BgLayer1)) return dev;
-  // if (Display_FillLayer(dev, L2, dev->BgLayer2)) return dev;
-
 
   dev->Lock = DISABLE;
 
@@ -578,16 +591,8 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(Display_TypeDef* d
 
 
 
-/**
-  * @brief  Fills rectangle on a layer of display with color
-  * @param  layer: number of layer
-  * @param  x: x coordinate
-  * @param  y: y coordinate 
-  * @param  h: height of a rectangle
-  * @param  w: weight of a rectangle
-  * @param  color: color
-  * @retval None
-  */
+// --------------------------------------------------------------------------
+
 HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef* dev, LTCDLayer_t layer, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t color) {
   
   LTDC_LayerCfgTypeDef* l = (layer == L1) ? dev->Layer1 : dev->Layer2;
@@ -595,7 +600,7 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef* d
   if ((x + w - 1) >= l->ImageHeight) return HAL_ERROR;
   if ((y + h - 1) >= l->ImageWidth) return HAL_ERROR;
 
-  hdma2d.Instance->OOR = l->ImageWidth - h;
+  dev->DMADevHandler->Instance->OOR = l->ImageWidth - h;
 
   if (HAL_DMA2D_Start(dev->DMADevHandler, color, GET_POSITIOIN_ADDRESS(l, x, y), h, w) != HAL_OK) return HAL_ERROR;
 
