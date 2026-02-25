@@ -109,7 +109,7 @@ static LTDC_LayerCfgTypeDef layer1 = {
   .WindowY0         = L1_PADDING_BOTTOM,
   .WindowY1         = (L1_WIDTH + L1_PADDING_TOP),
   .PixelFormat      = LTDC_PIXEL_FORMAT_ARGB8888,
-  .FBStartAdress    = L1_ADDR,
+  .FBStartAdress    = L1_FRONT_ADDR,
   .Alpha            = 255,
   .Alpha0           = 0,
   .BlendingFactor1  = LTDC_BLENDING_FACTOR1_PAxCA,
@@ -127,7 +127,7 @@ static LTDC_LayerCfgTypeDef layer2 = {
   .WindowY0         = L2_PADDING_BOTTOM,
   .WindowY1         = (L2_WIDTH + L2_PADDING_TOP),
   .PixelFormat      = LTDC_PIXEL_FORMAT_ARGB8888,
-  .FBStartAdress    = L2_ADDR,
+  .FBStartAdress    = L2_FRONT_ADDR,
   .Alpha            = 125,
   .Alpha0           = 0,
   .BlendingFactor1  = LTDC_BLENDING_FACTOR1_PAxCA,
@@ -762,16 +762,13 @@ void HAL_LTDC_LineEventCallback(LTDC_HandleTypeDef *hltdc) {
   /* We are now in VBlank */
   if (swap_pending == 1) {
 
-    /* TODO add LTDC Layers recognition */
-    
     // swap pointers
-    /* TODO add swapping buggers pointers */
     uint8_t addr_factor = (hltdc->LayerCfg[0].FBStartAdress >> 20) & 0b111;
 
     if (curr_ltcd_layer == L1) {
-      hltdc->LayerCfg[0].FBStartAdress = (addr_factor == 0) ? L1_BACK : L1_FRONT;
+      hltdc->LayerCfg[0].FBStartAdress = (addr_factor == 0) ? L1_BACK_ADDR : L1_FRONT_ADDR;
     } else {
-      hltdc->LayerCfg[1].FBStartAdress = (addr_factor == 2) ? L2_BACK : L2_FRONT;
+      hltdc->LayerCfg[1].FBStartAdress = (addr_factor == 2) ? L2_BACK_ADDR : L2_FRONT_ADDR;
     }
     __HAL_LTDC_RELOAD_CONFIG(hltdc);
 

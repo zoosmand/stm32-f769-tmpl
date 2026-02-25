@@ -79,25 +79,12 @@
 #define L2_HEIGHT                   (uint16_t)(DISPLAY_HEIGHT - L2_PADDING_BOTTOM - L2_PADDING_TOP)
 #define L2_WIDTH                    (uint16_t)(DISPLAY_WIDTH - L2_PADDING_LEFT - L2_PADDING_RIGHT)
 
-#define L1_BYTES                    (uint32_t)(L1_HEIGHT * L1_WIDTH * 4)
-#define L2_BYTES                    (uint32_t)(L2_HEIGHT * L2_WIDTH * 4)
+#define BUF_SIZE                    (uint32_t)0x00200000 // 2Mb
 
-#define BUF_SIZE                    (uint32_t)0x00200000
-#define L1_ADDR                     SDRAM_START_ADDR
-#define L1_MAX_ADDR                 (uint32_t)(SDRAM_START_ADDR + BUF_SIZE - 1)  // 2Mb
-#define L2_ADDR                     (uint32_t)(L1_MAX_ADDR + 1)
-#define L2_MAX_ADDR                 (uint32_t)(L2_ADDR + BUF_SIZE - 1)  // 2Mb
-
-#define BUF2_SIZE                   (uint32_t)0x00200000
-#define L1_BUF2_ADDR                (uint32_t)(L2_MAX_ADDR + 1)
-#define L1_MAX_BUF2_ADDR            (uint32_t)(L1_BUF2_ADDR + BUF2_SIZE - 1)  // 2Mb
-#define L2_BUF2_ADDR                (uint32_t)(L1_MAX_BUF2_ADDR + 1)
-#define L2_MAX_BUF2_ADDR            (uint32_t)(L2_BUF2_ADDR + BUF2_SIZE - 1)  // 2Mb
-
-#define L1_FRONT                    L1_ADDR
-#define L1_BACK                     L1_BUF2_ADDR
-#define L2_FRONT                    L2_ADDR
-#define L2_BACK                     L2_BUF2_ADDR
+#define L1_FRONT_ADDR                SDRAM_START_ADDR
+#define L1_BACK_ADDR                 SDRAM_START_ADDR + BUF_SIZE
+#define L2_FRONT_ADDR                SDRAM_START_ADDR + BUF_SIZE * 2
+#define L2_BACK_ADDR                 SDRAM_START_ADDR + BUF_SIZE * 3
 
 
 
