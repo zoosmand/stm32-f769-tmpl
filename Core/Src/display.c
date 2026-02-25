@@ -59,17 +59,24 @@ __STATIC_INLINE void on_up(Display_TypeDef* screen, TouchScreen_TypeDef* touch) 
   };
 
 
-  char position[20];
-  sprintf(position, "x:%d y:%d\n", touch->Context->X, touch->Context->Y); 
+  uint16_t lf = 2;
+
+  if (Display_DrawVLine(screen, L1, touch->Context->LastX, 0, screen->Height, lf, screen->BgLayer1) != HAL_OK) return;
+  if (Display_DrawHLine(screen, L1, 0, touch->Context->LastY, screen->Width, lf, screen->BgLayer1) != HAL_OK) return;
+
+  if (Display_DrawVLine(screen, L1, touch->Context->X, 0, screen->Height, lf, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
+  if (Display_DrawHLine(screen, L1, 0, touch->Context->Y, screen->Width, lf, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
+
+  touch->Context->LastX = touch->Context->X;
+  touch->Context->LastY = touch->Context->Y;
 
   uint16_t x1 = 40;
   uint16_t y1 = 40;
+  char position[20];
+  sprintf(position, "x:%d y:%d\n", touch->Context->X, touch->Context->Y); 
+
   Display_FillRectangle(screen, L1, 40, 40, (font.Width * 12), font.Height, font.Bgcolor);
   Display_PrintString(screen, L1, &x1, &y1, &font, position, false);
-
-  if (Display_DrawVLine(screen, L1, touch->Context->X, 0, screen->Height, 3, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
-  if (Display_DrawHLine(screen, L1, 0, touch->Context->Y, screen->Width, 2, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
-
 
 }
 

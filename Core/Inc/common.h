@@ -126,8 +126,8 @@ typedef struct {
  * @brief   LTCD layer enumeration.
  */
 typedef enum {
-  L1,
-  L2,
+  L1 = 0,
+  L2 = 1,
 } LTCDLayer_t;
 
 

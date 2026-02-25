@@ -94,6 +94,12 @@
 #define L2_BUF2_ADDR                (uint32_t)(L1_MAX_BUF2_ADDR + 1)
 #define L2_MAX_BUF2_ADDR            (uint32_t)(L2_BUF2_ADDR + BUF2_SIZE - 1)  // 2Mb
 
+#define L1_FRONT                    L1_ADDR
+#define L1_BACK                     L1_BUF2_ADDR
+#define L2_FRONT                    L2_ADDR
+#define L2_BACK                     L2_BUF2_ADDR
+
+
 
 
 /**
@@ -249,7 +255,6 @@ extern LTDC_HandleTypeDef hltdc;
 
 /* Exported macro ------------------------------------------------------------*/
 #define GET_POSITIOIN_ADDRESS(layer, x, y)  (layer->FBStartAdress + ((x * layer->ImageWidth) + y) * 4)
-#define GET_BUF2_ADDRESS(layer, x, y)  ((2 * BUF_SIZE) + layer->FBStartAdress + ((x * layer->ImageWidth) + y) * 4)
 
 
 /* DSI related */

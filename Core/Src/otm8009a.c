@@ -18,6 +18,7 @@
 
 
 __IO uint8_t swap_pending = 0;
+__IO LTCDLayer_t curr_ltcd_layer = L1;
 
 /*
  * @brief Constant tables of register settings used to transmit DSI
@@ -458,10 +459,11 @@ Display_TypeDef* OTM8009A_Init(void) {
 
   /* Configure layers */
   if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer1, 0) != HAL_OK) return dev;
+  if (Display_FillLayer(dev, L1, dev->BgLayer1)) return dev;
+
   /* TODO implement the usage of LTDC Layer 2 */
   // if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer2, 1) != HAL_OK) return dev;
-  
-  if (Display_FillLayer(dev, L1, dev->BgLayer1)) return dev;
+  // if (Display_FillLayer(dev, L2, dev->BgLayer2)) return dev;
 
   dev->Lock = DISABLE;
 
@@ -591,11 +593,14 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(Display_TypeDef* d
 
 
 
+
+
 // --------------------------------------------------------------------------
 
 HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef* dev, LTCDLayer_t layer, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t color) {
   
   LTDC_LayerCfgTypeDef* l = (layer == L1) ? dev->Layer1 : dev->Layer2;
+  curr_ltcd_layer = layer;
 
   if ((x + w - 1) >= l->ImageHeight) return HAL_ERROR;
   if ((y + h - 1) >= l->ImageWidth) return HAL_ERROR;
@@ -689,6 +694,8 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(Display_TypeDef* dev,
   }
 
   LTDC_LayerCfgTypeDef* l = (layer == L1) ? dev->Layer1 : dev->Layer2;
+  curr_ltcd_layer = layer;
+
   
   if ((*x + f->Width - 1) >= l->ImageHeight) return HAL_ERROR;
   if ((*y + f->Height - 1) >= l->ImageWidth) return HAL_ERROR;
@@ -736,6 +743,7 @@ HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(Display_TypeDef* dev
   // swap_pending = 0;
 
   LTDC_LayerCfgTypeDef* l = (layer == L1) ? dev->Layer1 : dev->Layer2;
+  curr_ltcd_layer = layer;
   
   SCB_CleanDCache_by_Addr((uint32_t*)l->FBStartAdress, l->ImageWidth * l->ImageHeight * 4);
   
@@ -755,11 +763,17 @@ void HAL_LTDC_LineEventCallback(LTDC_HandleTypeDef *hltdc) {
   if (swap_pending == 1) {
 
     /* TODO add LTDC Layers recognition */
-    hltdc->LayerCfg[0].FBStartAdress = ???;
-    __HAL_LTDC_RELOAD_CONFIG(hltdc);
-        
+    
     // swap pointers
     /* TODO add swapping buggers pointers */
+    uint8_t addr_factor = (hltdc->LayerCfg[0].FBStartAdress >> 20) & 0b111;
+
+    if (curr_ltcd_layer == L1) {
+      hltdc->LayerCfg[0].FBStartAdress = (addr_factor == 0) ? L1_BACK : L1_FRONT;
+    } else {
+      hltdc->LayerCfg[1].FBStartAdress = (addr_factor == 2) ? L2_BACK : L2_FRONT;
+    }
+    __HAL_LTDC_RELOAD_CONFIG(hltdc);
 
     swap_pending = 0;
   }
