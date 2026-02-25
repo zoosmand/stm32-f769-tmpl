@@ -607,9 +607,6 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef* d
 
   dev->DMADevHandler->Instance->OOR = l->ImageWidth - h;
 
-
-  /* TODO add getting position of the back buffer always, then it will be swapped */
-
   if (HAL_DMA2D_Start(dev->DMADevHandler, color, GET_POSITIOIN_ADDRESS(l, x, y), h, w) != HAL_OK) return HAL_ERROR;
 
   HAL_DMA2D_PollForTransfer(dev->DMADevHandler, HAL_MAX_DELAY);
