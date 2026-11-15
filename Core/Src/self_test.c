@@ -139,9 +139,6 @@ static bool test_Clock(const SelfTest_Context_TypeDef *context)
                            "CR=0x%08lX", RCC->CR);
   passed &= selfTest_Check("main PLL locked", (RCC->CR & RCC_CR_PLLRDY) != 0U,
                            "CR=0x%08lX", RCC->CR);
-  passed &= selfTest_Check("PLLSAI locked (LTDC)",
-                           (RCC->CR & RCC_CR_PLLSAIRDY) != 0U,
-                           "CR=0x%08lX", RCC->CR);
   passed &= selfTest_Check("over-drive active",
                            (PWR->CSR1 & PWR_CSR1_ODSWRDY) != 0U,
                            "CSR1=0x%08lX", PWR->CSR1);
@@ -752,6 +749,9 @@ static bool test_Ltdc(const SelfTest_Context_TypeDef *context)
   }
 
   bool passed = true;
+  passed &= selfTest_Check("PLLSAI locked (LTDC)",
+                           (RCC->CR & RCC_CR_PLLSAIRDY) != 0U,
+                           "CR=0x%08lX", RCC->CR);
   passed &= selfTest_Check("HAL state ready",
                            HAL_LTDC_GetState(ltdc) == HAL_LTDC_STATE_READY,
                            "error 0x%lX", ltdc->ErrorCode);

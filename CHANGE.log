@@ -17,11 +17,12 @@ Fixed (issue #12)
   the subsystem reached if later initialization stalls or fails.
 * POST is split into an early CPU/clock/USART/CRC phase and a peripheral phase.
   The console `test post` command still runs the complete POST suite.
+  Display-specific PLLSAI validation remains in the late LTDC test.
 * The stdout hook returns a short write or EIO when HAL_UART_Transmit() fails
   instead of silently claiming every byte was sent.
 
 Memory impact (issue #12, arm-none-eabi-size, -Og)
-* Flash text 122,732 -> 123,516 bytes. The RX pool moved from DTCM into the
+* Flash text 122,732 -> 123,524 bytes. The RX pool moved from DTCM into the
   19,139-byte DMA section; DTCM data+bss fell from 48,716 to 23,432 bytes. The lwIP heap was
   moved from 0x20020400 to 0x20025000 to follow the DMA-owned pool.
 
