@@ -24,6 +24,8 @@ The current `dev` firmware configures:
 - a power-on self-test and on-demand peripheral tests;
 - CRC and board GPIO;
 - bare-metal lwIP over Ethernet (LAN8742 PHY) with DHCP;
+- DNS servers and NTP servers taken from the DHCP lease, with an SNTP-synchronized
+  UTC clock;
 - a touch UI with Network and printf() Log screens.
 
 Other onboard interfaces, QSPI boot, and HDMI support remain future work.
@@ -87,7 +89,8 @@ The home screen shows two buttons and a status line with the IP address, link
 state, and uptime:
 
 - **NETWORK** opens link, speed/duplex, DHCP state, IP address, netmask,
-  gateway, DNS, and MAC address, refreshed every 0.5 s;
+  gateway, both DNS servers, NTP server and status, UTC time, and MAC address,
+  refreshed every 0.5 s;
 - **LOG** opens the most recent `printf()` output (everything also sent to
   USART1), drawn with the 10x14 bitmap font and updated live.
 
@@ -105,11 +108,28 @@ test <name|post|all>      run one test, the POST suite, or every test
 led <1|2> <on|off|toggle> drive a user LED
 bright <0-255>            OTM8009A display brightness (DCS)
 info                      clocks, uptime, device state
-net                       Ethernet link, DHCP and addresses
+net                       Ethernet link, DHCP, addresses, DNS and NTP servers
+dns <hostname>            resolve a name with the DHCP DNS servers
+ntp [sync]                NTP status, or request a synchronization
 screen [home|network|log] show or select the UI screen
 tap <x> <y>               inject a touch tap (pixels, top-left origin)
 reset                     system reset
 ```
+
+## DNS and NTP
+
+Both services are configured only from the DHCP lease: DNS servers from option 6
+and NTP servers from option 42. The firmware synchronizes over SNTP as soon as
+it has an address, then hourly, and logs each synchronization:
+
+```text
+DHCP: NTP servers 172.18.10.1, 172.18.10.9
+DHCP: DNS 172.18.10.1, 172.18.10.9
+NTP: clock set to 2026-11-15 13:22:18 UTC from 172.18.10.1 (stratum 5, rtt 1 ms)
+```
+
+If the DHCP server offers no option 42, the log and the Network screen say so
+and no time is set. The on-demand tests `dns` and `ntp` check both services.
 
 The POST runs `core`, `clock`, `usart`, `crc`, `i2c1`, `i2c4`, `touch`,
 `codec`, `eth`, `sdram`, `dma2d`, `ltdc`, `dsi`, and `gpio`; none alter the display or

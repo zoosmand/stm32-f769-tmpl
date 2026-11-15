@@ -97,6 +97,13 @@
 #define CHECKSUM_CHECK_ICMP6 0
 /*-----------------------------------------------------------------------------*/
 
+/* Network services configured from the DHCP lease (issue #10) ---------------*/
+/* DNS resolver; the DHCP client installs option 6 servers via dns_setserver(). */
+#define LWIP_DNS 1
+/* Request DHCP option 42 and pass the servers to dhcp_set_ntp_servers(). */
+#define LWIP_DHCP_GET_NTP_SRV 1
+#define LWIP_DHCP_MAX_NTP_SERVERS 2
+/*-----------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
 }

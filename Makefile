@@ -45,6 +45,7 @@ Core/Src/ui.c \
 Core/Src/stm32f7xx_it.c \
 Core/Src/stm32f7xx_hal_msp.c \
 LWIP/App/lwip.c \
+LWIP/App/sntp_client.c \
 LWIP/Target/ethernetif.c \
 Drivers/BSP/Components/lan8742/lan8742.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rcc.c \

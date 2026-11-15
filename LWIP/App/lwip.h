@@ -29,6 +29,7 @@
 #include "lwip/dhcp.h"
 #include "lwip/netif.h"
 #include "lwip/timeouts.h"
+#include "lwip/dns.h"
 #include "ethernetif.h"
 
 extern ETH_HandleTypeDef heth;
@@ -46,7 +47,7 @@ typedef struct
   ip4_addr_t Address;      /**< Interface IPv4 address (0 when none). */
   ip4_addr_t Netmask;      /**< IPv4 netmask. */
   ip4_addr_t Gateway;      /**< Default gateway. */
-  ip4_addr_t Dns;          /**< First DNS server (0 when LWIP_DNS is off). */
+  ip4_addr_t Dns[DNS_MAX_SERVERS]; /**< DNS servers from DHCP option 6. */
   uint8_t Mac[6];          /**< Interface MAC address. */
 } Network_StatusTypeDef;
 
@@ -58,8 +59,8 @@ typedef struct
 void MX_LWIP_Init(void);
 
 /**
-  * @brief Receive frames, run lwIP timers, poll the link every 100 ms, and log
-  *        link/DHCP changes through printf().
+  * @brief Receive frames, run lwIP timers and the SNTP client, poll the link
+  *        every 100 ms, and log link/DHCP/DNS changes through printf().
   * @note  Non-blocking; call continuously from the main loop only.
   */
 void MX_LWIP_Process(void);

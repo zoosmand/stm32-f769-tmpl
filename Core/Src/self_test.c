@@ -4,6 +4,7 @@
 #include "ft6206.h"
 #include "lan8742.h"
 #include "lwip.h"
+#include "sntp_client.h"
 #include "main.h"
 #include "otm8009a.h"
 #include "ui.h"
@@ -40,6 +41,10 @@
 #define SELF_TEST_WM8994_ID           0x8994U
 
 #define SELF_TEST_FRAME_WINDOW_MS     250U
+
+#define SELF_TEST_DNS_HOSTNAME        "example.com"
+#define SELF_TEST_NETWORK_TIMEOUT_MS  6000U
+#define SELF_TEST_MIN_UNIX_SECONDS    1735689600ULL   /* 2025-01-01T00:00:00Z */
 
 /** One named test. Post marks members of the non-destructive POST suite. */
 typedef struct
@@ -396,6 +401,124 @@ static bool test_Ethernet(const SelfTest_Context_TypeDef *context)
          status.LinkUp ? "up" : "down");
   printf("    ok   %-22s %s\r\n", "DHCP (informational)",
          Network_GetDhcpStateName(status.DhcpState));
+  return passed;
+}
+
+/** DNS lookup completion shared with test_Dns(); main-loop context only. */
+static volatile bool selfTestDnsDone;
+static ip_addr_t selfTestDnsAddress;
+static bool selfTestDnsFound;
+
+static void selfTest_DnsFound(const char *name, const ip_addr_t *address,
+                              void *arg)
+{
+  (void)name;
+  (void)arg;
+  selfTestDnsFound = address != NULL;
+  if (address != NULL)
+  {
+    ip_addr_copy(selfTestDnsAddress, *address);
+  }
+  selfTestDnsDone = true;
+}
+
+/** Keep lwIP running while a network test waits (single-threaded). */
+static void selfTest_PumpNetwork(void)
+{
+  MX_LWIP_Process();
+}
+
+static bool test_Dns(const SelfTest_Context_TypeDef *context)
+{
+  (void)context;
+  Network_StatusTypeDef status;
+  (void)Network_GetStatus(&status);
+
+  bool passed = selfTest_Check("DHCP lease", status.DhcpBound, "%lu", 0UL);
+  char server[16];
+  (void)ip4addr_ntoa_r(&status.Dns[0], server, sizeof(server));
+  passed &= selfTest_Check("DNS server from DHCP",
+                           ip4_addr_get_u32(&status.Dns[0]) != 0U, "%lu", 0UL);
+  printf("    info DNS 1                  %s\r\n", server);
+  if (!passed)
+  {
+    return false;
+  }
+
+  selfTestDnsDone = false;
+  selfTestDnsFound = false;
+  const uint32_t startedAt = HAL_GetTick();
+  const err_t request = dns_gethostbyname(SELF_TEST_DNS_HOSTNAME,
+                                          &selfTestDnsAddress,
+                                          selfTest_DnsFound, NULL);
+  if (request == ERR_OK)
+  {
+    selfTestDnsDone = true;
+    selfTestDnsFound = true;
+  }
+  while ((request == ERR_INPROGRESS) && !selfTestDnsDone &&
+         ((HAL_GetTick() - startedAt) < SELF_TEST_NETWORK_TIMEOUT_MS))
+  {
+    selfTest_PumpNetwork();
+  }
+
+  char address[IPADDR_STRLEN_MAX] = "-";
+  if (selfTestDnsFound)
+  {
+    (void)ipaddr_ntoa_r(&selfTestDnsAddress, address, sizeof(address));
+  }
+  printf("    info %-22s %s (%lu ms)\r\n", SELF_TEST_DNS_HOSTNAME, address,
+         (unsigned long)(HAL_GetTick() - startedAt));
+  passed &= selfTest_Check("resolve " SELF_TEST_DNS_HOSTNAME,
+                           selfTestDnsDone && selfTestDnsFound,
+                           "request %ld", (long)request);
+  return passed;
+}
+
+static bool test_Ntp(const SelfTest_Context_TypeDef *context)
+{
+  (void)context;
+  Sntp_StatusTypeDef before;
+  (void)Sntp_GetStatus(&before);
+
+  bool passed = selfTest_Check("NTP server from DHCP", before.ServerCount > 0U,
+                               "%lu offered", (unsigned long)before.ServerCount);
+  if (!passed)
+  {
+    return false;
+  }
+
+  Sntp_RequestSync();
+  const uint32_t startedAt = HAL_GetTick();
+  Sntp_StatusTypeDef after = before;
+  while ((after.SyncCount == before.SyncCount) &&
+         ((HAL_GetTick() - startedAt) < SELF_TEST_NETWORK_TIMEOUT_MS))
+  {
+    selfTest_PumpNetwork();
+    (void)Sntp_GetStatus(&after);
+  }
+
+  passed &= selfTest_Check("fresh synchronization",
+                           after.SyncCount > before.SyncCount, "%lu ms",
+                           (unsigned long)(HAL_GetTick() - startedAt));
+  uint64_t unixMs = 0U;
+  const bool haveTime = Sntp_GetUnixTimeMs(&unixMs);
+  char utc[24] = "-";
+  if (haveTime)
+  {
+    Sntp_FormatUtc(unixMs, utc, sizeof(utc));
+  }
+  printf("    info UTC                    %s\r\n", utc);
+  passed &= selfTest_Check("time after 2025-01-01",
+                           haveTime &&
+                           ((unixMs / 1000U) >= SELF_TEST_MIN_UNIX_SECONDS),
+                           "%lu s", (unsigned long)(unixMs / 1000U));
+  passed &= selfTest_Check("stratum 1..15",
+                           (after.Stratum >= 1U) && (after.Stratum <= 15U),
+                           "%lu", (unsigned long)after.Stratum);
+  (void)selfTest_Check("round trip", true, "%lu ms",
+                       (unsigned long)after.RoundTripMs);
+  (void)selfTest_Check("clock step", true, "%ld ms", (long)after.LastStepMs);
   return passed;
 }
 
@@ -807,6 +930,8 @@ static const SelfTest_Case_TypeDef selfTestCases[] = {
   { "ltdc",    "LTDC enable, layer, refresh rate",             true,  test_Ltdc },
   { "dsi",     "DSI host PHY/PLL and DCS command path",        true,  test_Dsi },
   { "gpio",    "LEDs, backlight, DSI reset, user button",      true,  test_Gpio },
+  { "dns",     "resolve " SELF_TEST_DNS_HOSTNAME " via DHCP DNS servers", false, test_Dns },
+  { "ntp",     "SNTP synchronization with DHCP NTP server",    false, test_Ntp },
   { "sdramfull", "8 MiB scratch: data/address bus, pattern",   false, test_SdramFull },
   { "display", "color bars with framebuffer readback",         false, test_Display },
 };

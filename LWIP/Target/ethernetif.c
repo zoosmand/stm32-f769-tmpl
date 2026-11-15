@@ -28,6 +28,7 @@
 #include "ethernetif.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "lan8742.h"
 #include <string.h>
 
@@ -656,6 +657,18 @@ void ethernet_link_check_state(struct netif *netif)
       MACConf.Speed = speed;
       HAL_ETH_SetMACConfig(&heth, &MACConf);
       HAL_ETH_Start(&heth);
+
+      /* Seed LWIP_RAND() (rand()) before DHCP draws its transaction ID and DNS
+         randomizes IDs/ports. The device UID differs per board; the moment of
+         autonegotiation completion adds per-boot jitter. Not cryptographic. */
+      static uint8_t randomSeeded;
+      if (randomSeeded == 0U)
+      {
+        srand(HAL_GetUIDw0() ^ HAL_GetUIDw1() ^ HAL_GetUIDw2() ^
+              (SysTick->VAL << 8) ^ HAL_GetTick());
+        randomSeeded = 1U;
+      }
+
       netif_set_up(netif);
       netif_set_link_up(netif);
     }
