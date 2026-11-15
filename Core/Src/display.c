@@ -17,38 +17,14 @@
 
 #include "display.h"
 
-
-
-static __IO uint32_t step = 0;
-
-
-
-__STATIC_INLINE void on_move(Display_TypeDef*, TouchScreen_TypeDef*);
-__STATIC_INLINE void on_up(Display_TypeDef*, TouchScreen_TypeDef*);
-__STATIC_INLINE void on_down(Display_TypeDef*, TouchScreen_TypeDef*);
-__STATIC_INLINE void on_hold(Display_TypeDef*, TouchScreen_TypeDef*);
+#include <stdio.h>
 
 
 
-
-
-
-/////////////////////////////////////////////////////////////////////////////
-
-
-
-// --------------------------------------------------------------------------
-
-__STATIC_INLINE void on_move(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
-  //
-}
-
-
-
-// --------------------------------------------------------------------------
-
-__STATIC_INLINE void on_up(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
-  //
+/** Render the last released touch coordinates and crosshair. */
+static void display_HandleTouchUp(Display_TypeDef *screen,
+                                  TouchScreen_TypeDef *touch)
+{
   Font_TypeDef font = {
     .Bgcolor      = (ARGB8888_Black | 0xff000000),
     .Color        = (ARGB8888_Lightblue | 0xff000000),
@@ -80,25 +56,9 @@ __STATIC_INLINE void on_up(Display_TypeDef* screen, TouchScreen_TypeDef* touch) 
 
 }
 
-
-// --------------------------------------------------------------------------
-
-__STATIC_INLINE void on_hold(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
-  //
-}
-
-
-// --------------------------------------------------------------------------
-
-__STATIC_INLINE void on_down(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
-  //
-}
-
-
-
-// --------------------------------------------------------------------------
-
-void Display_Run(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
+void Display_Run(Display_TypeDef *screen, TouchScreen_TypeDef *touch)
+{
+  if ((screen == NULL) || (touch == NULL)) return;
 
   if (screen->Lock == ENABLE) return;
   if (touch->State == TOUCH_LOCKED) return;
@@ -109,24 +69,14 @@ void Display_Run(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
   TouchScreen_Process(touch);
 
   switch (touch->Event) {
-    case TOUCH_ON_DOWN:
-      on_down(screen, touch);
-      break;
-    
     case TOUCH_ON_UP:
-      on_up(screen, touch);
+      display_HandleTouchUp(screen, touch);
       break;
-    
+    case TOUCH_ON_DOWN:
     case TOUCH_ON_HOLD:
-      on_hold(screen, touch);
-      break;
-    
     case TOUCH_ON_MOVE:
-      on_move(screen, touch);
-      break;
-    
     case TOUCH_ON_IDLE:
-      default:
+    default:
       __NOP();
       break;
   }

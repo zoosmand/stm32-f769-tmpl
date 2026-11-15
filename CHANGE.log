@@ -1,0 +1,31 @@
+STM32F769I-DISCO firmware change log
+===================================
+
+Unreleased
+----------
+
+Changed
+* Separated application processing from order-sensitive board initialization
+  through App_Init() and non-blocking App_Process() entry points.
+* Removed obsolete CubeMX USER CODE markers and empty generated section comments
+  from project-owned startup, interrupt, MSP, and lwIP integration files.
+* Reduced cyclic header dependencies and made module includes explicit.
+* Documented the HAL/CMSIS boundary and the steps required before enabling
+  FreeRTOS.
+* Added contracts and member descriptions for important application, display,
+  touch, and SDRAM interfaces.
+* Made the interrupt-shared touch activation state volatile and gave the touch
+  device a typed I2C handle.
+* Decoupled SDRAM access from the DMA2D output-address register, added null,
+  alignment, overflow, and full-range validation, and made the busy timeout safe
+  across HAL tick wraparound.
+* Added a non-destructive power-on self-test that reports core, clock, UART, CRC,
+  I2C, touchscreen, SDRAM, DMA2D, DSI, LTDC/display, and LED GPIO results through
+  printf() on USART1.
+
+Known limitations
+* FreeRTOS is not yet included or started; lwIP remains configured for NO_SYS.
+* Ethernet initialization remains disabled in main.c.
+* Display drawing and touchscreen behavior still require target-hardware
+  regression testing after this refactor.
+* QSPI boot, HDMI, and remaining board peripherals are outside this change.

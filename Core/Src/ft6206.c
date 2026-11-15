@@ -12,6 +12,11 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "ft6206.h"
+#include "main.h"
+#include "otm8009a.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 
 
@@ -26,7 +31,7 @@ EXTI_HandleTypeDef exti_line_touch = {
   .Line             = LCD_INT_Pin_Pos,
   .PendingCallback  = tc_int_event_callback,
 };
-TouchState_t touch_activated_flag = TOUCH_IDLE;
+volatile TouchState_t touch_activated_flag = TOUCH_IDLE;
 
 
 
@@ -51,7 +56,7 @@ TouchScreen_TypeDef* FT6206_Init(void) {
   static TouchContext_TypeDef touch_0_context = {};
   static TouchScreen_TypeDef touch_0 = {
     .Model        = 6206,
-    .BusHandler   = (uint32_t*)&hi2c4,
+    .BusHandler   = &hi2c4,
     .BusAddr      = (FT6206_I2C_ADDR << 1),
     .State        = TOUCH_DISABLED,
     .Orientation  = ORIENTATION,
@@ -60,7 +65,7 @@ TouchScreen_TypeDef* FT6206_Init(void) {
   };
 
   TouchScreen_TypeDef* dev = &touch_0;
-  I2C_HandleTypeDef* bus_handler = (I2C_HandleTypeDef*)dev->BusHandler;
+  I2C_HandleTypeDef *bus_handler = dev->BusHandler;
 
 
   /* Initialize RESET Pin */
@@ -109,20 +114,17 @@ __STATIC_INLINE HAL_StatusTypeDef tc_read(TouchScreen_TypeDef* dev) {
   if ((dev->State == TOUCH_DISABLED) || (dev->State == TOUCH_LOCKED)) return HAL_ERROR;
 
 
-  // if (dev->State == TOUCH_IDLE) {
-  
-    uint8_t raw_data[16];
+  uint8_t raw_data[16];
 
-    if (HAL_I2C_Mem_Read((I2C_HandleTypeDef*)dev->BusHandler, dev->BusAddr, FT6x02_DYN_DATA, I2C_MEMADD_SIZE_8BIT, raw_data, sizeof(raw_data), 30) != HAL_OK) return HAL_ERROR;
+  if (HAL_I2C_Mem_Read(dev->BusHandler, dev->BusAddr, FT6x02_DYN_DATA,
+                       I2C_MEMADD_SIZE_8BIT, raw_data, sizeof(raw_data), 30) != HAL_OK) return HAL_ERROR;
 
-    dev->Context->Touches = raw_data[2] & 0x03;
-    dev->Context->Event   = ((raw_data[3] >> 6) & 0x03) | ((raw_data[5] >> 2) & 0x30);
-    dev->Context->RawX    = ((raw_data[3] & 0x0f) << 8) | raw_data[4];
-    dev->Context->RawY    = ((raw_data[5] & 0x0f) << 8) | raw_data[6];
-    
-    // Normilixe coordinates
-    tc_map_to_display(dev);
-  // }
+  dev->Context->Touches = raw_data[2] & 0x03;
+  dev->Context->Event   = ((raw_data[3] >> 6) & 0x03) | ((raw_data[5] >> 2) & 0x30);
+  dev->Context->RawX    = ((raw_data[3] & 0x0f) << 8) | raw_data[4];
+  dev->Context->RawY    = ((raw_data[5] & 0x0f) << 8) | raw_data[6];
+
+  tc_map_to_display(dev);
 
   return HAL_OK;
 }

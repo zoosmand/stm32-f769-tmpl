@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * File Name          : LWIP.h
@@ -17,7 +16,6 @@
   *************************************************************************
 
   */
-/* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __mx_lwip_H
 #define __mx_lwip_H
@@ -35,23 +33,18 @@
 #include "lwip/timeouts.h"
 #include "ethernetif.h"
 
-/* Includes for RTOS ---------------------------------------------------------*/
 #if WITH_RTOS
 #include "lwip/tcpip.h"
 #endif /* WITH_RTOS */
 
-/* USER CODE BEGIN 0 */
 
-/* USER CODE END 0 */
 
-/* Global Variables ----------------------------------------------------------*/
 extern ETH_HandleTypeDef heth;
 
 /* LWIP init function */
 void MX_LWIP_Init(void);
 
 #if !WITH_RTOS
-/* USER CODE BEGIN 1 */
 /* Function defined in lwip.c to:
  *   - Read a received packet from the Ethernet buffers
  *   - Send it to the lwIP stack for handling
@@ -59,7 +52,6 @@ void MX_LWIP_Init(void);
  */
 void MX_LWIP_Process(void);
 
-/* USER CODE END 1 */
 #endif /* WITH_RTOS */
 
 #ifdef __cplusplus

@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
  ******************************************************************************
   * File Name          : ethernetif.h
@@ -16,17 +15,13 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 
 #ifndef __ETHERNETIF_H__
 #define __ETHERNETIF_H__
 #include "lwip/err.h"
 #include "lwip/netif.h"
 
-/* Within 'USER CODE' section, code will be kept by default at each generation */
-/* USER CODE BEGIN 0 */
 
-/* USER CODE END 0 */
 
 /* Exported functions ------------------------------------------------------- */
 err_t ethernetif_init(struct netif *netif);
@@ -38,7 +33,5 @@ void Error_Handler(void);
 u32_t sys_jiffies(void);
 u32_t sys_now(void);
 
-/* USER CODE BEGIN 1 */
 
-/* USER CODE END 1 */
 #endif

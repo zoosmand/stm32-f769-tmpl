@@ -199,9 +199,7 @@ Display_TypeDef* OTM8009A_Init(void) {
 
   /* Enable CMD2 to access vendor specific commands                               */
   /* Enter in command 2 mode and set EXTC to enable address shift function (0x00) */
-  // dsi_write(0, (uint8_t*){ OTM8009A_CMD_NOP, 0x00 });
   if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return dev;
-  // dsi_write( 3, (const uint8_t *){0x80, 0x09, 0x01, 0xff});
   if (dsi_write( 3, (uint8_t *)lcdRegData1) != HAL_OK) return dev;
 
   /* Enter ORISE Command 2 */
@@ -461,9 +459,7 @@ Display_TypeDef* OTM8009A_Init(void) {
   if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer1, 0) != HAL_OK) return dev;
   if (Display_FillLayer(dev, L1, dev->BgLayer1)) return dev;
 
-  /* TODO implement the usage of LTDC Layer 2 */
-  // if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer2, 1) != HAL_OK) return dev;
-  // if (Display_FillLayer(dev, L2, dev->BgLayer2)) return dev;
+  /* LTDC layer 2 is reserved for a later overlay implementation. */
 
   dev->Lock = DISABLE;
 
@@ -730,17 +726,17 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(Display_TypeDef* dev,
 // --------------------------------------------------------------------------
 
 HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(Display_TypeDef* dev, LTCDLayer_t layer, uint16_t *x, uint16_t *y, const Font_TypeDef *f, const char *str, bool wrap) {
-  
-  uint16_t char_count = 0;
-  
-  while (str[char_count++] != '\n') {
-    if (char_count > 64) break;
+  if ((dev == NULL) || (x == NULL) || (y == NULL) ||
+      (f == NULL) || (str == NULL)) {
+    return HAL_ERROR;
   }
-  
-  char_count--;
-  
-  // while (!swap_pending) __WFI();
-  // swap_pending = 0;
+
+  (void)wrap;
+  uint16_t char_count = 0;
+  while ((char_count < 64U) && (str[char_count] != '\0') &&
+         (str[char_count] != '\n')) {
+    char_count++;
+  }
 
   LTDC_LayerCfgTypeDef* l = (layer == L1) ? dev->Layer1 : dev->Layer2;
   curr_ltcd_layer = layer;

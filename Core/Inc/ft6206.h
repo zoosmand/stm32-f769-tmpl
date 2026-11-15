@@ -19,9 +19,10 @@
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include "common.h"
 
 
+/** I2C4 bus configured by platform initialization for the touch controller. */
 extern I2C_HandleTypeDef hi2c4;
 
 #define FT6206_I2C_ADDR   0x2a
@@ -91,10 +92,24 @@ extern I2C_HandleTypeDef hi2c4;
 #define TOUCH_RELEASE_THRESHOLD     500 // ms
 
 
-/* Exported functions prototypes ---------------------------------------------*/
+/**
+  * @brief Initialize the FT6206 controller and its falling-edge EXTI input.
+  * @retval Persistent device object; inspect State for initialization result.
+  * @note Must run after I2C4 and GPIO clocks are initialized. The returned
+  *       object has static lifetime and remains owned by this module.
+  */
 TouchScreen_TypeDef* FT6206_Init(void);
 
-HAL_StatusTypeDef __attribute__((weak)) TouchScreen_Process(TouchScreen_TypeDef*);
+/**
+  * @brief Read and advance one touch-controller state-machine sample.
+  * @param touch Non-null device returned by FT6206_Init().
+  * @retval HAL_OK on a processed sample; HAL_ERROR on invalid/device state or
+  *         an I2C transfer failure.
+  * @note Call from thread/main-loop context after the EXTI callback signals a
+  *       pending sample. The function performs a blocking I2C transaction.
+  */
+HAL_StatusTypeDef __attribute__((weak)) TouchScreen_Process(
+    TouchScreen_TypeDef *touch);
 
 
 #ifdef __cplusplus

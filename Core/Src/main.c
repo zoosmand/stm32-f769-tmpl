@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.c
@@ -15,32 +14,23 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "app.h"
+#include "fmc.h"
+#include "ft6206.h"
 #include "lwip.h"
+#include "otm8009a.h"
+#include "self_test.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 
-/* USER CODE END Includes */
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
 
-/* USER CODE END PTD */
 
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
 
-/* USER CODE END PD */
 
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
 
-/* USER CODE END PM */
 
-/* Private variables ---------------------------------------------------------*/
 
 CRC_HandleTypeDef hcrc;
 
@@ -57,13 +47,10 @@ UART_HandleTypeDef huart1;
 
 SDRAM_HandleTypeDef hsdram1;
 
-/* USER CODE BEGIN PV */
 static void ITM_Init(void);
 
 
-/* USER CODE END PV */
 
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
@@ -75,11 +62,7 @@ static void MX_LTDC_Init(void);
 static void MX_FMC_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C4_Init(void);
-/* USER CODE BEGIN PFP */
-/* USER CODE END PFP */
 
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
 
 
 
@@ -123,22 +106,6 @@ int _write(int file, char *ptr, int len)
 
 
 
-// GPIO
-// FMC + SDRAM init
-// MPU framebuffer region
-// Enable caches
-// LTDC init (clocked, disabled)
-// DSI init (PLL + host)
-// OTM8009A_Init() (DSI command mode!)
-// DSI video mode config
-// HAL_DSI_Start()
-// Configure LTDC layers
-// Reload + enable LTDC
-
-
-
-/* USER CODE END 0 */
-
 /**
   * @brief  The application entry point.
   * @retval int
@@ -146,9 +113,7 @@ int _write(int file, char *ptr, int len)
 int main(void)
 {
 
-  /* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
 
   /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
@@ -156,15 +121,11 @@ int main(void)
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
-  /* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
-  /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
@@ -187,29 +148,35 @@ int main(void)
   
   HAL_DSI_Start(&hdsi);
   
-  // MX_LWIP_Init();
+  Display_TypeDef *display = OTM8009A_Init();
+  TouchScreen_TypeDef *touch = FT6206_Init();
 
+  if (App_Init(display, touch) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
+  const SelfTest_Context_TypeDef selfTestContext = {
+    .Crc = &hcrc,
+    .Dma2d = &hdma2d,
+    .Dsi = &hdsi,
+    .I2c1 = &hi2c1,
+    .I2c4 = &hi2c4,
+    .Ltdc = &hltdc,
+    .Uart = &huart1,
+    .Sdram = &hsdram1,
+    .Display = display,
+    .Touch = touch,
+  };
+  (void)SelfTest_Run(&selfTestContext);
 
-  Display_TypeDef* display_0 = OTM8009A_Init();
-  if (display_0->Lock == ENABLE) Error_Handler();
-
-  TouchScreen_TypeDef* touch_0 = FT6206_Init();
-  if ((touch_0->State == TOUCH_LOCKED) | (touch_0->State == TOUCH_DISABLED)) Error_Handler();
-
-  /* USER CODE END 2 */
 
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
 
-    Display_Run(display_0, touch_0);
-    // MX_LWIP_Process();
-    /* USER CODE BEGIN 3 */
+    App_Process();
   }
-  /* USER CODE END 3 */
 }
 
 
@@ -284,13 +251,9 @@ void SystemClock_Config(void)
 static void MX_CRC_Init(void)
 {
 
-  /* USER CODE BEGIN CRC_Init 0 */
 
-  /* USER CODE END CRC_Init 0 */
 
-  /* USER CODE BEGIN CRC_Init 1 */
 
-  /* USER CODE END CRC_Init 1 */
   hcrc.Instance = CRC;
   hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
   hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
@@ -301,9 +264,7 @@ static void MX_CRC_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN CRC_Init 2 */
 
-  /* USER CODE END CRC_Init 2 */
 
 }
 
@@ -315,13 +276,9 @@ static void MX_CRC_Init(void)
 static void MX_DMA2D_Init(void)
 {
 
-  /* USER CODE BEGIN DMA2D_Init 0 */
 
-  /* USER CODE END DMA2D_Init 0 */
 
-  /* USER CODE BEGIN DMA2D_Init 1 */
 
-  /* USER CODE END DMA2D_Init 1 */
   hdma2d.Instance = DMA2D;
   hdma2d.Init.Mode = DMA2D_R2M;
   hdma2d.Init.ColorMode = DMA2D_OUTPUT_ARGB8888;
@@ -345,7 +302,6 @@ static void MX_DMA2D_Init(void)
   if (HAL_DMA2D_ConfigLayer(&hdma2d, 0) != HAL_OK) Error_Handler();
   if (HAL_DMA2D_ConfigLayer(&hdma2d, 1) != HAL_OK) Error_Handler();
 
-  /* USER CODE BEGIN DMA2D_Init 2 */
   
   hdma2d.Instance->OMAR = SDRAM_START_ADDR;
   hdma2d.Instance->OCOLR = 0xff000000;
@@ -356,7 +312,6 @@ static void MX_DMA2D_Init(void)
     MODIFY_REG(hdma2d.Instance->NLR, (DMA2D_NLR_NL_Msk | DMA2D_NLR_PL_Msk), ((DISPLAY_WIDTH << DMA2D_NLR_NL_Pos) | (DISPLAY_HEIGHT << DMA2D_NLR_PL_Pos)));
   #endif
 
-  /* USER CODE END DMA2D_Init 2 */
 
 }
 
@@ -368,22 +323,18 @@ static void MX_DMA2D_Init(void)
 static void MX_DSIHOST_DSI_Init(void)
 {
 
-  /* USER CODE BEGIN DSIHOST_Init 0 */
   /* Reset */
-  PIN_L(DSI_RESET_Port, DSI_RESET_Pin);
+  HAL_GPIO_WritePin(DSI_RESET_Port, DSI_RESET_Pin, GPIO_PIN_RESET);
   HAL_Delay(10);
-  PIN_H(DSI_RESET_Port, DSI_RESET_Pin);
+  HAL_GPIO_WritePin(DSI_RESET_Port, DSI_RESET_Pin, GPIO_PIN_SET);
 
-  /* USER CODE END DSIHOST_Init 0 */
 
 
 
   DSI_PLLInitTypeDef PLLInit = {0};
   DSI_VidCfgTypeDef VidCfg = {0};
 
-  /* USER CODE BEGIN DSIHOST_Init 1 */
 
-  /* USER CODE END DSIHOST_Init 1 */
   hdsi.Instance = DSI;
   hdsi.Init.AutomaticClockLaneControl = DSI_AUTO_CLK_LANE_CTRL_DISABLE;
   hdsi.Init.TXEscapeCkdiv = 4;
@@ -431,9 +382,7 @@ static void MX_DSIHOST_DSI_Init(void)
   }
 
 
-  /* USER CODE BEGIN DSIHOST_Init 2 */
 
-  /* USER CODE END DSIHOST_Init 2 */
 
 }
 
@@ -445,13 +394,9 @@ static void MX_DSIHOST_DSI_Init(void)
 static void MX_LTDC_Init(void)
 {
 
-  /* USER CODE BEGIN LTDC_Init 0 */
 
-  /* USER CODE END LTDC_Init 0 */
 
-  /* USER CODE BEGIN LTDC_Init 1 */
 
-  /* USER CODE END LTDC_Init 1 */
   hltdc.Instance = LTDC;
   hltdc.Init.HSPolarity = LTDC_HSPOLARITY_AH;
   hltdc.Init.VSPolarity = LTDC_VSPOLARITY_AH;
@@ -478,13 +423,11 @@ static void MX_LTDC_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN LTDC_Init 2 */
   hltdc.Instance->IER |= LTDC_IER_LIE;
   hltdc.Instance->LIPCR = 0;
   HAL_NVIC_SetPriority(LTDC_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(LTDC_IRQn);
 
-  /* USER CODE END LTDC_Init 2 */
 
 }
 
@@ -496,13 +439,9 @@ static void MX_LTDC_Init(void)
 static void MX_USART1_UART_Init(void)
 {
 
-  /* USER CODE BEGIN USART1_Init 0 */
 
-  /* USER CODE END USART1_Init 0 */
 
-  /* USER CODE BEGIN USART1_Init 1 */
 
-  /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
   huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
@@ -517,9 +456,7 @@ static void MX_USART1_UART_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART1_Init 2 */
 
-  /* USER CODE END USART1_Init 2 */
 
 }
 
@@ -532,14 +469,10 @@ static void MX_USART1_UART_Init(void)
 static void MX_FMC_Init(void)
 {
 
-  /* USER CODE BEGIN FMC_Init 0 */
 
-  /* USER CODE END FMC_Init 0 */
 
   FMC_SDRAM_TimingTypeDef SdramTiming = {0};
 
-  /* USER CODE BEGIN FMC_Init 1 */
-  /* USER CODE END FMC_Init 1 */
 
   /** Perform the SDRAM1 memory initialization sequence
   */
@@ -569,7 +502,6 @@ static void MX_FMC_Init(void)
 
 
 
-  /* USER CODE BEGIN FMC_Init 2 */
 
   FMC_SDRAM_CommandTypeDef SdramCommand   = {0};
 
@@ -611,9 +543,7 @@ static void MX_FMC_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
 
-  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOE_CLK_ENABLE();
@@ -845,12 +775,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF0_MCO;
   HAL_GPIO_Init(CEC_CLK_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LCD_INT_Pin */
-  // GPIO_InitStruct.Pin = LCD_INT_Pin;
-  // GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  // GPIO_InitStruct.Pull = GPIO_NOPULL;
-  // HAL_GPIO_Init(LCD_INT_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : ARD_D5_PWM_Pin */
   GPIO_InitStruct.Pin = ARD_D5_PWM_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -1006,9 +930,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DSI_RESET_GPIO_Port, &GPIO_InitStruct);
 
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
 
-  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 
@@ -1020,13 +942,9 @@ static void MX_GPIO_Init(void)
 static void MX_I2C1_Init(void)
 {
 
-  /* USER CODE BEGIN I2C1_Init 0 */
 
-  /* USER CODE END I2C1_Init 0 */
 
-  /* USER CODE BEGIN I2C1_Init 1 */
 
-  /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x20404768;
   hi2c1.Init.OwnAddress1 = 0;
@@ -1054,9 +972,7 @@ static void MX_I2C1_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN I2C1_Init 2 */
 
-  /* USER CODE END I2C1_Init 2 */
 
 }
 
@@ -1069,13 +985,9 @@ static void MX_I2C1_Init(void)
 static void MX_I2C4_Init(void)
 {
 
-  /* USER CODE BEGIN I2C4_Init 0 */
 
-  /* USER CODE END I2C4_Init 0 */
 
-  /* USER CODE BEGIN I2C4_Init 1 */
 
-  /* USER CODE END I2C4_Init 1 */
   hi2c4.Instance = I2C4;
   hi2c4.Init.Timing = 0x20404768;
   hi2c4.Init.OwnAddress1 = 0;
@@ -1103,18 +1015,14 @@ static void MX_I2C4_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN I2C4_Init 2 */
 
-  /* USER CODE END I2C4_Init 2 */
 
 }
 
 
 
 
-/* USER CODE BEGIN 4 */
 
-/* USER CODE END 4 */
 
  /* MPU Configuration */
 
@@ -1171,13 +1079,11 @@ void MPU_Config(void)
   */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
   {
   }
-  /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
 /**
@@ -1189,9 +1095,7 @@ void Error_Handler(void)
   */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-  /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

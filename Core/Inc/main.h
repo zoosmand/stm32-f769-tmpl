@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.h
@@ -16,7 +15,6 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __MAIN_H
@@ -29,41 +27,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_hal.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-#include <string.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "common.h"
-#include "fonts.h"
-#include "fmc.h"
-#include "otm8009a.h"
-#include "ft6206.h"
-#include "display.h"
-/* USER CODE END Includes */
-
-/* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-
-/* USER CODE END ET */
-
-/* Exported constants --------------------------------------------------------*/
-/* USER CODE BEGIN EC */
-
-/* USER CODE END EC */
-
-/* Exported macro ------------------------------------------------------------*/
-/* USER CODE BEGIN EM */
-
-/* USER CODE END EM */
-
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
-
-/* USER CODE BEGIN EFP */
-
-/* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
 #define SAI1_FSA_Pin GPIO_PIN_4
@@ -376,10 +341,8 @@ void Error_Handler(void);
 #define ARDUINO_MOSI_PWM_D11_Pin GPIO_PIN_15
 #define ARDUINO_MOSI_PWM_D11_GPIO_Port GPIOB
 
-/* USER CODE BEGIN Private defines */
 #define DSI_RESET_Pin       GPIO_PIN_15
 #define DSI_RESET_Port      GPIOJ
-/* USER CODE END Private defines */
 
 #ifdef __cplusplus
 }

@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file         stm32f7xx_hal_msp.c
@@ -16,65 +15,39 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-/* USER CODE BEGIN Includes */
 
-/* USER CODE END Includes */
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN TD */
 
-/* USER CODE END TD */
 
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN Define */
 
-/* USER CODE END Define */
 
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN Macro */
 
-/* USER CODE END Macro */
 
-/* Private variables ---------------------------------------------------------*/
-/* USER CODE BEGIN PV */
 
-/* USER CODE END PV */
 
-/* Private function prototypes -----------------------------------------------*/
-/* USER CODE BEGIN PFP */
 
-/* USER CODE END PFP */
 
 /* External functions --------------------------------------------------------*/
-/* USER CODE BEGIN ExternalFunctions */
 
-/* USER CODE END ExternalFunctions */
 
-/* USER CODE BEGIN 0 */
 
-/* USER CODE END 0 */
 /**
   * Initializes the Global MSP.
   */
 void HAL_MspInit(void)
 {
 
-  /* USER CODE BEGIN MspInit 0 */
 
-  /* USER CODE END MspInit 0 */
 
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_RCC_SYSCFG_CLK_ENABLE();
 
   /* System interrupt init*/
 
-  /* USER CODE BEGIN MspInit 1 */
 
-  /* USER CODE END MspInit 1 */
 }
 
 /**
@@ -87,14 +60,10 @@ void HAL_CRC_MspInit(CRC_HandleTypeDef* hcrc)
 {
   if(hcrc->Instance==CRC)
   {
-    /* USER CODE BEGIN CRC_MspInit 0 */
 
-    /* USER CODE END CRC_MspInit 0 */
     /* Peripheral clock enable */
     __HAL_RCC_CRC_CLK_ENABLE();
-    /* USER CODE BEGIN CRC_MspInit 1 */
 
-    /* USER CODE END CRC_MspInit 1 */
 
   }
 
@@ -110,14 +79,10 @@ void HAL_CRC_MspDeInit(CRC_HandleTypeDef* hcrc)
 {
   if(hcrc->Instance==CRC)
   {
-    /* USER CODE BEGIN CRC_MspDeInit 0 */
 
-    /* USER CODE END CRC_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_CRC_CLK_DISABLE();
-    /* USER CODE BEGIN CRC_MspDeInit 1 */
 
-    /* USER CODE END CRC_MspDeInit 1 */
   }
 
 }
@@ -132,14 +97,10 @@ void HAL_DMA2D_MspInit(DMA2D_HandleTypeDef* hdma2d)
 {
   if(hdma2d->Instance==DMA2D)
   {
-    /* USER CODE BEGIN DMA2D_MspInit 0 */
 
-    /* USER CODE END DMA2D_MspInit 0 */
     /* Peripheral clock enable */
     __HAL_RCC_DMA2D_CLK_ENABLE();
-    /* USER CODE BEGIN DMA2D_MspInit 1 */
 
-    /* USER CODE END DMA2D_MspInit 1 */
 
   }
 
@@ -155,14 +116,10 @@ void HAL_DMA2D_MspDeInit(DMA2D_HandleTypeDef* hdma2d)
 {
   if(hdma2d->Instance==DMA2D)
   {
-    /* USER CODE BEGIN DMA2D_MspDeInit 0 */
 
-    /* USER CODE END DMA2D_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_DMA2D_CLK_DISABLE();
-    /* USER CODE BEGIN DMA2D_MspDeInit 1 */
 
-    /* USER CODE END DMA2D_MspDeInit 1 */
   }
 
 }
@@ -178,9 +135,7 @@ void HAL_DSI_MspInit(DSI_HandleTypeDef* hdsi)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   if(hdsi->Instance==DSI)
   {
-    /* USER CODE BEGIN DSI_MspInit 0 */
 
-    /* USER CODE END DSI_MspInit 0 */
     /* Peripheral clock enable */
     __HAL_RCC_DSI_CLK_ENABLE();
 
@@ -195,9 +150,7 @@ void HAL_DSI_MspInit(DSI_HandleTypeDef* hdsi)
     GPIO_InitStruct.Alternate = GPIO_AF13_DSI;
     HAL_GPIO_Init(DSIHOST_TE_GPIO_Port, &GPIO_InitStruct);
 
-    /* USER CODE BEGIN DSI_MspInit 1 */
 
-    /* USER CODE END DSI_MspInit 1 */
 
   }
 
@@ -213,9 +166,7 @@ void HAL_DSI_MspDeInit(DSI_HandleTypeDef* hdsi)
 {
   if(hdsi->Instance==DSI)
   {
-    /* USER CODE BEGIN DSI_MspDeInit 0 */
 
-    /* USER CODE END DSI_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_DSI_CLK_DISABLE();
 
@@ -224,9 +175,7 @@ void HAL_DSI_MspDeInit(DSI_HandleTypeDef* hdsi)
     */
     HAL_GPIO_DeInit(DSIHOST_TE_GPIO_Port, DSIHOST_TE_Pin);
 
-    /* USER CODE BEGIN DSI_MspDeInit 1 */
 
-    /* USER CODE END DSI_MspDeInit 1 */
   }
 
 }
@@ -242,22 +191,6 @@ void HAL_LTDC_MspInit(LTDC_HandleTypeDef* hltdc)
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
   if(hltdc->Instance==LTDC)
   {
-    /* USER CODE BEGIN LTDC_MspInit 0 */
-  /* Enable PLL SAI Domain */
-    // RCC->PLLSAICFGR = (
-    //     384 << RCC_PLLSAICFGR_PLLSAIN_Pos
-    //   | 0 << RCC_PLLSAICFGR_PLLSAIP_Pos
-    //   | 4 << RCC_PLLSAICFGR_PLLSAIQ_Pos
-    //   | 7 << RCC_PLLSAICFGR_PLLSAIR_Pos
-    // );
-    // MODIFY_REG(RCC->DCKCFGR1, RCC_DCKCFGR1_PLLSAIDIVR_Msk, (0 << RCC_DCKCFGR1_PLLSAIDIVR_Pos));
-
-    // /* Enable PLL SAI wait till it's ready */
-    // PREG_SET(RCC->CR, RCC_CR_PLLSAION_Pos);
-    // while (!(PREG_CHECK(RCC->CR, RCC_CR_PLLSAIRDY_Pos)));
-
-    /* USER CODE END LTDC_MspInit 0 */
-
   /** Initializes the peripherals clock
   */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_LTDC;
@@ -266,8 +199,6 @@ void HAL_LTDC_MspInit(LTDC_HandleTypeDef* hltdc)
     PeriphClkInitStruct.PLLSAI.PLLSAIR = 7;
     PeriphClkInitStruct.PLLSAI.PLLSAIQ = 4;
     PeriphClkInitStruct.PLLSAI.PLLSAIP = RCC_PLLSAIP_DIV2;
-    // PeriphClkInitStruct.PLLSAIDivQ = 1;
-    // PeriphClkInitStruct.PLLSAIDivR = RCC_PLLSAIDIVR_4;
 
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
     {
@@ -276,9 +207,7 @@ void HAL_LTDC_MspInit(LTDC_HandleTypeDef* hltdc)
 
     /* Peripheral clock enable */
     __HAL_RCC_LTDC_CLK_ENABLE();
-    /* USER CODE BEGIN LTDC_MspInit 1 */
 
-    /* USER CODE END LTDC_MspInit 1 */
 
   }
 
@@ -294,14 +223,10 @@ void HAL_LTDC_MspDeInit(LTDC_HandleTypeDef* hltdc)
 {
   if(hltdc->Instance==LTDC)
   {
-    /* USER CODE BEGIN LTDC_MspDeInit 0 */
 
-    /* USER CODE END LTDC_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_LTDC_CLK_DISABLE();
-    /* USER CODE BEGIN LTDC_MspDeInit 1 */
 
-    /* USER CODE END LTDC_MspDeInit 1 */
   }
 
 }
@@ -318,9 +243,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
   if(huart->Instance==USART1)
   {
-    /* USER CODE BEGIN USART1_MspInit 0 */
 
-    /* USER CODE END USART1_MspInit 0 */
 
   /** Initializes the peripherals clock
   */
@@ -353,9 +276,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
     HAL_GPIO_Init(VCP_TX_GPIO_Port, &GPIO_InitStruct);
 
-    /* USER CODE BEGIN USART1_MspInit 1 */
 
-    /* USER CODE END USART1_MspInit 1 */
 
   }
 
@@ -371,9 +292,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
 {
   if(huart->Instance==USART1)
   {
-    /* USER CODE BEGIN USART1_MspDeInit 0 */
 
-    /* USER CODE END USART1_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_USART1_CLK_DISABLE();
 
@@ -383,9 +302,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     */
     HAL_GPIO_DeInit(GPIOA, VCP_RX_Pin|VCP_TX_Pin);
 
-    /* USER CODE BEGIN USART1_MspDeInit 1 */
 
-    /* USER CODE END USART1_MspDeInit 1 */
   }
 
 }
@@ -393,9 +310,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
 static uint32_t FMC_Initialized = 0;
 
 static void HAL_FMC_MspInit(void){
-  /* USER CODE BEGIN FMC_MspInit 0 */
 
-  /* USER CODE END FMC_MspInit 0 */
   GPIO_InitTypeDef GPIO_InitStruct ={0};
   if (FMC_Initialized) {
     return;
@@ -516,27 +431,19 @@ static void HAL_FMC_MspInit(void){
   GPIO_InitStruct.Alternate = GPIO_AF12_FMC;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
-  /* USER CODE BEGIN FMC_MspInit 1 */
 
-  /* USER CODE END FMC_MspInit 1 */
 }
 
 void HAL_SDRAM_MspInit(SDRAM_HandleTypeDef* hsdram){
-  /* USER CODE BEGIN SDRAM_MspInit 0 */
 
-  /* USER CODE END SDRAM_MspInit 0 */
   HAL_FMC_MspInit();
-  /* USER CODE BEGIN SDRAM_MspInit 1 */
 
-  /* USER CODE END SDRAM_MspInit 1 */
 }
 
 static uint32_t FMC_DeInitialized = 0;
 
 static void HAL_FMC_MspDeInit(void){
-  /* USER CODE BEGIN FMC_MspDeInit 0 */
 
-  /* USER CODE END FMC_MspDeInit 0 */
   if (FMC_DeInitialized) {
     return;
   }
@@ -625,22 +532,15 @@ static void HAL_FMC_MspDeInit(void){
                           |FMC_SDNE0_Pin|FMC_SDCKE0_Pin|D20_Pin|FMC_D_7_Pin
                           |FMC_D19_Pin|FMC_D16_Pin|FMC_D18_Pin);
 
-  /* USER CODE BEGIN FMC_MspDeInit 1 */
 
-  /* USER CODE END FMC_MspDeInit 1 */
 }
 
 void HAL_SDRAM_MspDeInit(SDRAM_HandleTypeDef* hsdram){
-  /* USER CODE BEGIN SDRAM_MspDeInit 0 */
 
-  /* USER CODE END SDRAM_MspDeInit 0 */
   HAL_FMC_MspDeInit();
-  /* USER CODE BEGIN SDRAM_MspDeInit 1 */
 
-  /* USER CODE END SDRAM_MspDeInit 1 */
 }
 
-/* USER CODE BEGIN 1 */
 /**
   * @brief I2C MSP Initialization
   * This function configures the hardware resources used in this example
@@ -653,9 +553,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
   if(hi2c->Instance==I2C1)
   {
-    /* USER CODE BEGIN I2C1_MspInit 0 */
 
-    /* USER CODE END I2C1_MspInit 0 */
 
   /** Initializes the peripherals clock
   */
@@ -680,15 +578,11 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
 
     /* Peripheral clock enable */
     __HAL_RCC_I2C1_CLK_ENABLE();
-    /* USER CODE BEGIN I2C1_MspInit 1 */
 
-    /* USER CODE END I2C1_MspInit 1 */
   }
   else if(hi2c->Instance==I2C4)
   {
-    /* USER CODE BEGIN I2C4_MspInit 0 */
 
-    /* USER CODE END I2C4_MspInit 0 */
 
   /** Initializes the peripherals clock
   */
@@ -721,9 +615,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
 
     /* Peripheral clock enable */
     __HAL_RCC_I2C4_CLK_ENABLE();
-    /* USER CODE BEGIN I2C4_MspInit 1 */
 
-    /* USER CODE END I2C4_MspInit 1 */
   }
 
 }
@@ -738,9 +630,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
 {
   if(hi2c->Instance==I2C1)
   {
-    /* USER CODE BEGIN I2C1_MspDeInit 0 */
 
-    /* USER CODE END I2C1_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_I2C1_CLK_DISABLE();
 
@@ -752,11 +642,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
 
     HAL_GPIO_DeInit(ARDUINO_SDA_D14_GPIO_Port, ARDUINO_SDA_D14_Pin);
 
-    /* USER CODE BEGIN I2C1_MspDeInit 1 */
 
-    /* USER CODE END I2C1_MspDeInit 1 */
   }
 
 }
-
-/* USER CODE END 1 */

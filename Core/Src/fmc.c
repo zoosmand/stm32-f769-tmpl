@@ -1,214 +1,185 @@
-/**
-  ******************************************************************************
-  * File Name          : fmc.c
-  * Description        : This file provides code for the configuration
-  *                      of the FMC instances.
-  ******************************************************************************
-  * @attention
-  *
-  *
-  ******************************************************************************
-  */
-
-/* Includes ------------------------------------------------------------------*/
 #include "fmc.h"
 
-/* Global variables ---------------------------------------------------------*/
+/** Return true when an offset/length pair lies inside the 16 MiB SDRAM. */
+static bool sdram_IsRangeValid(uint32_t offset, uint32_t lengthBytes)
+{
+  return (offset <= SDRAM_SIZE_BYTES) &&
+         (lengthBytes <= (SDRAM_SIZE_BYTES - offset));
+}
 
-/* Private function prototypes -----------------------------------------------*/
+/** Convert a byte offset from SDRAM_START_ADDR to a volatile address. */
+static uintptr_t sdram_Address(uint32_t offset)
+{
+  return (uintptr_t)SDRAM_START_ADDR + offset;
+}
 
+HAL_StatusTypeDef SDRAM_BusyStatusCheck(SDRAM_HandleTypeDef *sdram)
+{
+  if ((sdram == NULL) || (sdram->Instance == NULL))
+  {
+    return HAL_ERROR;
+  }
 
-
-
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-HAL_StatusTypeDef SDRAM_BusyStatusCheck(SDRAM_HandleTypeDef* sdram) {
-  uint32_t threshold = HAL_GetTick() + SDRAM_BUSY_STATUS_TIMEOUT;
-
-  while (PREG_CHECK(sdram->Instance->SDSR, FMC_SDSR_BUSY_Pos)) {
-    if (HAL_GetTick() > threshold) return HAL_ERROR;
-  };
+  const uint32_t startedAt = HAL_GetTick();
+  while ((sdram->Instance->SDSR & FMC_SDSR_BUSY) != 0U)
+  {
+    if ((HAL_GetTick() - startedAt) >= SDRAM_BUSY_STATUS_TIMEOUT_MS)
+    {
+      return HAL_TIMEOUT;
+    }
+  }
 
   return HAL_OK;
 }
 
+HAL_StatusTypeDef SDRAM_Write8b(SDRAM_HandleTypeDef *sdram, uint32_t offset,
+                                uint8_t data)
+{
+  if (!sdram_IsRangeValid(offset, sizeof(data)) ||
+      (SDRAM_BusyStatusCheck(sdram) != HAL_OK))
+  {
+    return HAL_ERROR;
+  }
 
-
-/**
-  * @brief  Writes a byte into SDRAM's certain address
-  * @param  addr: SDRAM address
-  * @param  data: a byte   
-  * @return none
-  */
-HAL_StatusTypeDef SDRAM_Write8b(SDRAM_HandleTypeDef* sdram, uint32_t addr, uint8_t data) {
-
-  if (SDRAM_BusyStatusCheck(sdram) != HAL_OK) return HAL_ERROR; 
-
-  *(__IO uint8_t*) (hdma2d.Instance->OMAR + addr) = data;
+  *(__IO uint8_t *)sdram_Address(offset) = data;
   return HAL_OK;
 }
 
+uint8_t SDRAM_Read8b(SDRAM_HandleTypeDef *sdram, uint32_t offset)
+{
+  if (!sdram_IsRangeValid(offset, sizeof(uint8_t)) ||
+      (SDRAM_BusyStatusCheck(sdram) != HAL_OK))
+  {
+    return 0U;
+  }
 
-
-
-/**
-  * @brief  Reads a byte from SDRAM's certain address
-  * @param  addr: SDRAM address
-  * @return a byte
-  */
-uint8_t SDRAM_Read8b(SDRAM_HandleTypeDef* sdram, uint32_t addr) {
-  SDRAM_BusyStatusCheck(sdram);
-  return (*(__IO uint8_t*)(hdma2d.Instance->OMAR + addr));
+  return *(__IO uint8_t *)sdram_Address(offset);
 }
 
+HAL_StatusTypeDef SDRAM_Write16b(SDRAM_HandleTypeDef *sdram, uint32_t offset,
+                                 uint16_t data)
+{
+  if (!sdram_IsRangeValid(offset, sizeof(data)) ||
+      ((offset % sizeof(data)) != 0U) ||
+      (SDRAM_BusyStatusCheck(sdram) != HAL_OK))
+  {
+    return HAL_ERROR;
+  }
 
-
-
-/**
-  * @brief  Writes a halfword into SDRAM's certain address
-  * @param  addr: SDRAM address
-  * @param  data: a halfword
-  * @return none
-  */
-HAL_StatusTypeDef SDRAM_Write16b(SDRAM_HandleTypeDef* sdram, uint32_t addr, uint16_t data) {
-  if (SDRAM_BusyStatusCheck(sdram) != HAL_OK) return HAL_ERROR;
-  *(__IO uint16_t*) (hdma2d.Instance->OMAR + addr) = data;
+  *(__IO uint16_t *)sdram_Address(offset) = data;
   return HAL_OK;
 }
 
+uint16_t SDRAM_Read16b(SDRAM_HandleTypeDef *sdram, uint32_t offset)
+{
+  if (!sdram_IsRangeValid(offset, sizeof(uint16_t)) ||
+      ((offset % sizeof(uint16_t)) != 0U) ||
+      (SDRAM_BusyStatusCheck(sdram) != HAL_OK))
+  {
+    return 0U;
+  }
 
-
-
-/**
-  * @brief  Reads a halfword from SDRAM's certain address
-  * @param  addr: SDRAM address
-  * @return a halfword
-  */
-uint16_t SDRAM_Read16b(SDRAM_HandleTypeDef* sdram, uint32_t addr) {
-  SDRAM_BusyStatusCheck(sdram);
-  return (*(__IO uint16_t*)(hdma2d.Instance->OMAR + addr));
+  return *(__IO uint16_t *)sdram_Address(offset);
 }
 
+HAL_StatusTypeDef SDRAM_Write32b(SDRAM_HandleTypeDef *sdram, uint32_t offset,
+                                 uint32_t data)
+{
+  if (!sdram_IsRangeValid(offset, sizeof(data)) ||
+      ((offset % sizeof(data)) != 0U) ||
+      (SDRAM_BusyStatusCheck(sdram) != HAL_OK))
+  {
+    return HAL_ERROR;
+  }
 
-
-
-/**
-  * @brief  Writes a word into SDRAM's certain address
-  * @param  addr: SDRAM address
-  * @param  data: a word
-  * @return none
-  */
-HAL_StatusTypeDef SDRAM_Write32b(SDRAM_HandleTypeDef* sdram, uint32_t addr, uint32_t data) {
-  if (SDRAM_BusyStatusCheck(sdram) != HAL_OK) return HAL_ERROR;
-  *(__IO uint32_t*)(hdma2d.Instance->OMAR + addr) = data;
+  *(__IO uint32_t *)sdram_Address(offset) = data;
   return HAL_OK;
 }
 
+uint32_t SDRAM_Read32b(SDRAM_HandleTypeDef *sdram, uint32_t offset)
+{
+  if (!sdram_IsRangeValid(offset, sizeof(uint32_t)) ||
+      ((offset % sizeof(uint32_t)) != 0U) ||
+      (SDRAM_BusyStatusCheck(sdram) != HAL_OK))
+  {
+    return 0U;
+  }
 
-
-
-/**
-  * @brief  Reads a word from SDRAM's certain address
-  * @param  addr SDRAM address
-  * @return a word
-  */
-uint32_t SDRAM_Read32b(SDRAM_HandleTypeDef* sdram, uint32_t addr) {
-  SDRAM_BusyStatusCheck(sdram);
-  return (*(__IO uint32_t*)(hdma2d.Instance->OMAR + addr));
+  return *(__IO uint32_t *)sdram_Address(offset);
 }
 
+HAL_StatusTypeDef SDRAM_ReadBuffer8b(SDRAM_HandleTypeDef *sdram,
+                                     uint32_t offset, uint32_t count,
+                                     uint8_t *buffer)
+{
+  if ((buffer == NULL) || !sdram_IsRangeValid(offset, count) ||
+      (SDRAM_BusyStatusCheck(sdram) != HAL_OK))
+  {
+    return HAL_ERROR;
+  }
 
-
-
-/**
-  * @brief  Reads a buffer from SDRAM's certain address
-  * @param  addr SDRAM address
-  * @param  cnt count of bytes
-  * @param  buf pointer of a buffer
-  * @return status of reading
-  */
-HAL_StatusTypeDef SDRAM_ReadBuffer8b(SDRAM_HandleTypeDef* sdram, uint32_t addr, uint32_t cnt, uint8_t *buf) {
-  if ((addr + cnt) > SDRAM_MAX_ADDR_Offset) return HAL_ERROR;
-  uint32_t ptr = addr;
-
-  if (SDRAM_BusyStatusCheck(sdram) != HAL_OK) return HAL_ERROR;
-
-  while (cnt--) {
-    *buf++ = *(__IO uint8_t*)(hdma2d.Instance->OMAR + ptr);
-    ptr++;
+  const __IO uint8_t *source = (const __IO uint8_t *)sdram_Address(offset);
+  while (count-- > 0U)
+  {
+    *buffer++ = *source++;
   }
   return HAL_OK;
 }
 
+HAL_StatusTypeDef SDRAM_WriteBuffer8b(SDRAM_HandleTypeDef *sdram,
+                                      uint32_t offset, uint32_t count,
+                                      const uint8_t *buffer)
+{
+  if ((buffer == NULL) || !sdram_IsRangeValid(offset, count) ||
+      (SDRAM_BusyStatusCheck(sdram) != HAL_OK))
+  {
+    return HAL_ERROR;
+  }
 
-
-
-/**
-  * @brief  Writes a buffer into SDRAM's certain address
-  * @param  addr SDRAM address
-  * @param  cnt count of bytes
-  * @param  buf pointer of a buffer
-  * @return status of writing
-  */
-HAL_StatusTypeDef SDRAM_WriteBuffer8b(SDRAM_HandleTypeDef* sdram, uint32_t addr, uint32_t cnt, uint8_t *buf) {
-  if ((addr + cnt) > SDRAM_MAX_ADDR_Offset) return HAL_ERROR;
-  uint32_t ptr = addr;
-
-  if (SDRAM_BusyStatusCheck(sdram) != HAL_OK) return HAL_ERROR;
-
-  while (cnt--) {
-    *(__IO uint8_t*)(hdma2d.Instance->OMAR + ptr) = *buf++;
-    ptr++;
+  __IO uint8_t *destination = (__IO uint8_t *)sdram_Address(offset);
+  while (count-- > 0U)
+  {
+    *destination++ = *buffer++;
   }
   return HAL_OK;
 }
 
+HAL_StatusTypeDef SDRAM_ReadBuffer(SDRAM_HandleTypeDef *sdram,
+                                   uint32_t offset, uint32_t count,
+                                   uint32_t *buffer)
+{
+  if ((count > (UINT32_MAX / sizeof(uint32_t))) ||
+      (buffer == NULL) || ((offset % sizeof(uint32_t)) != 0U) ||
+      !sdram_IsRangeValid(offset, count * sizeof(uint32_t)) ||
+      (SDRAM_BusyStatusCheck(sdram) != HAL_OK))
+  {
+    return HAL_ERROR;
+  }
 
-
-
-/**
-  * @brief  Reads a buffer from SDRAM's certain address
-  * @param  addr SDRAM address
-  * @param  cnt count of words
-  * @param  buf pointer of a buffer
-  * @return status of reading
-  */
-HAL_StatusTypeDef SDRAM_ReadBuffer(SDRAM_HandleTypeDef* sdram, uint32_t addr, uint32_t cnt, uint32_t *buf) {
-  if ((addr + cnt) > SDRAM_MAX_ADDR_Offset) return HAL_ERROR;
-  uint32_t ptr = addr;
-
-  if (SDRAM_BusyStatusCheck(sdram) != HAL_OK) return HAL_ERROR;
-
-  while (cnt--) {
-    *buf++ = *(__IO uint32_t*)(hdma2d.Instance->OMAR + ptr);
-    ptr += 4;
+  const __IO uint32_t *source = (const __IO uint32_t *)sdram_Address(offset);
+  while (count-- > 0U)
+  {
+    *buffer++ = *source++;
   }
   return HAL_OK;
 }
 
+HAL_StatusTypeDef SDRAM_WriteBuffer(SDRAM_HandleTypeDef *sdram,
+                                    uint32_t offset, uint32_t count,
+                                    const uint32_t *buffer)
+{
+  if ((count > (UINT32_MAX / sizeof(uint32_t))) ||
+      (buffer == NULL) || ((offset % sizeof(uint32_t)) != 0U) ||
+      !sdram_IsRangeValid(offset, count * sizeof(uint32_t)) ||
+      (SDRAM_BusyStatusCheck(sdram) != HAL_OK))
+  {
+    return HAL_ERROR;
+  }
 
-
-
-/**
-  * @brief  Writes a buffer into SDRAM's certain address
-  * @param  addr SDRAM address
-  * @param  cnt count of words
-  * @param  buf pointer of a buffer
-  * @return status of writing
-  */
-HAL_StatusTypeDef SDRAM_WriteBuffer(SDRAM_HandleTypeDef* sdram, uint32_t addr, uint32_t cnt, uint32_t *buf) {
-  if ((addr + cnt) > SDRAM_MAX_ADDR_Offset) return HAL_ERROR;
-  uint32_t ptr = addr;
-
-  if (SDRAM_BusyStatusCheck(sdram) != HAL_OK) return HAL_ERROR;
-
-  while (cnt--) {
-    *(__IO uint32_t*)(hdma2d.Instance->OMAR + ptr) = *buf++;
-    ptr += 4;
+  __IO uint32_t *destination = (__IO uint32_t *)sdram_Address(offset);
+  while (count-- > 0U)
+  {
+    *destination++ = *buffer++;
   }
   return HAL_OK;
 }

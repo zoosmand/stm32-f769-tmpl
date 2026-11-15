@@ -102,6 +102,7 @@ enabled.
 
 Contributors should read:
 
+- [Firmware architecture](docs/ARCHITECTURE.md)
 - [Development rules](docs/DEVELOPMENT_RULES.md)
 - [Naming conventions](docs/NAMING_CONVENTIONS.md)
 - [Supplying ignored source trees](docs/IGNORED_SOURCES.md)

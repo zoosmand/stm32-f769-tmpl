@@ -6,17 +6,24 @@
 #endif 
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include "common.h"
+#include "fonts.h"
+#include "ft6206.h"
+#include "otm8009a.h"
 
 
 
-#define SIMPLE_PAUSE 1000U;
+/** Set by the touch EXTI callback and consumed by Display_Run(). */
+extern volatile TouchState_t touch_activated_flag;
 
-
-extern TouchState_t touch_activated_flag;
-
-
-void Display_Run(Display_TypeDef*, TouchScreen_TypeDef*);
+/**
+  * @brief Process one pending touch sample and update the display demo.
+  * @param screen Non-null initialized and unlocked display.
+  * @param touch Non-null initialized touchscreen.
+  * @note Non-blocking when no touch interrupt is pending; call from thread or
+  *       main-loop context, never from an interrupt handler.
+  */
+void Display_Run(Display_TypeDef *screen, TouchScreen_TypeDef *touch);
 
 
 

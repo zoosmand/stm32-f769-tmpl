@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * File Name          : Target/lwipopts.h
@@ -16,7 +15,6 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 
 /* Define to prevent recursive inclusion --------------------------------------*/
 #ifndef __LWIPOPTS__H__
@@ -28,10 +26,7 @@
 /* Current version of LwIP supported by CubeMx: 2.1.2 -*/
 /*-----------------------------------------------------------------------------*/
 
-/* Within 'USER CODE' section, code will be kept by default at each generation */
-/* USER CODE BEGIN 0 */
 
-/* USER CODE END 0 */
 
 #ifdef __cplusplus
  extern "C" {
@@ -101,9 +96,7 @@
 /*----- Value in opt.h for CHECKSUM_CHECK_ICMP6: 1 -----*/
 #define CHECKSUM_CHECK_ICMP6 0
 /*-----------------------------------------------------------------------------*/
-/* USER CODE BEGIN 1 */
 
-/* USER CODE END 1 */
 
 #ifdef __cplusplus
 }
