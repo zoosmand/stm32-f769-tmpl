@@ -42,8 +42,8 @@ before continuing.
 
 - Follow [the project naming conventions](NAMING_CONVENTIONS.md).
 - Keep imported vendor and middleware code in its upstream style.
-- Preserve the established ownership of `Core`, `Periph`, `Srv`, `TLS`, and
-  project-owned `lwip/system` integration code.
+- Preserve the boundary between project-owned `Core` and `LWIP` code and the
+  ignored vendor trees under `Drivers` and `Middlewares`.
 - Document public interfaces, structures, units, blocking behavior, ownership,
   and task or interrupt restrictions where relevant.
 - Keep comments focused on design intent, hardware constraints, and non-obvious
@@ -85,7 +85,8 @@ Before requesting review:
 3. Perform a clean firmware build using the repository Makefile.
 4. Review compiler and linker warnings rather than dismissing them
    automatically.
-5. Record Flash, DTCM, SRAM, and dedicated DMA-memory changes when material.
+5. Record Flash, DTCM, SRAM, external SDRAM, framebuffer, and dedicated
+   Ethernet-memory changes when material.
 6. Run available host-side tests and static checks.
 7. Test on the target device when hardware behavior is affected.
 
@@ -141,4 +142,4 @@ issue or explicitly document it as an accepted limitation.
 
 ---
 
-Copyright © 2017-2026 Dmitry Slobodchikov.
+Copyright © 2017-2026 Askug Ltd.

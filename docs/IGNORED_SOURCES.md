@@ -1,69 +1,72 @@
 # Supplying ignored source trees
 
-The repository does not track the STM32 vendor driver distribution. This keeps
-project history focused on project-owned firmware while allowing each checkout
-to use the matching, licensed STMicroelectronics package.
+The repository intentionally does not track STM32CubeF7 vendor drivers or
+third-party middleware. This keeps project history focused on project-owned
+firmware while allowing a checkout to use a known, compatible STM32CubeF7
+distribution.
 
 ## Required local sources
 
-Before building, provide these paths from a known-good STM32F767 package:
+A fresh checkout needs the following paths before it can build:
 
 ```text
 Drivers/CMSIS/
-Middlewares/Third_Party/MbedTLS/
+Drivers/STM32F7xx_HAL_Driver/
+Drivers/BSP/Components/lan8742/
+Middlewares/Third_Party/LwIP/
 ```
 
-The checkout tracks the FreeRTOS kernel and the project-specific lwIP tree. Do
-not replace them with arbitrary releases. Supply Mbed TLS 3.6.7 at the exact
-path above; the Makefile and `TLS/Inc/health_checker_mbedtls_config.h` select
-the embedded subset used by the TLS 1.3 checker. The known-good source tree can
-also be copied from the neighboring STM32F407 health-check project.
+The Makefile compiles STM32F7 HAL sources, the LAN8742 component driver, CMSIS
+headers, and lwIP directly from these locations. Use source trees from one
+known-good STM32CubeF7 release rather than combining arbitrary versions.
 
-## Prepare a fork
+The following integration code is project-owned and tracked by Git:
 
-1. Clone the fork:
+```text
+LWIP/App/
+LWIP/Target/
+Core/
+```
 
-   ```sh
-   git clone <fork-url>
-   cd stmf7-health-check
-   ```
+Do not overwrite those directories while installing the vendor package.
 
-2. Copy the compatible STM32F7 CMSIS source tree into `Drivers/CMSIS/` and
-   Mbed TLS 3.6.7 into `Middlewares/Third_Party/MbedTLS/`.
+## Preparing a checkout
 
-3. Generate the ignored management-server certificate, key, and embedded
-   credential header:
+1. Clone the repository and select the development branch:
 
    ```sh
-   tools/generate_server_certificate.sh health-check.local 192.168.0.50
+   git clone <repository-url>
+   cd stm32-f769-tmpl
+   git switch dev
    ```
 
-4. Confirm that the device headers include STM32F767 support and that the local
+2. Copy the required directories from the chosen STM32CubeF7 package into the
+   paths listed above.
+
+3. Confirm that CMSIS contains the STM32F769 device headers and that the local
    toolchain provides `arm-none-eabi-gcc`.
 
-5. Build from the repository root:
+4. Build from the repository root:
 
    ```sh
-   make clean
    make -j4
    ```
 
-The Makefile compiles only explicitly selected project and middleware sources.
-Do not delete unused files from an installed vendor distribution merely to
-reduce the firmware build.
+The Makefile compiles an explicit source list. Do not delete unused files from
+an installed vendor tree merely to reduce the build; update the source list
+when the firmware's compiled dependency set changes.
 
-## Sharing a fork
+## Provenance and sharing
 
-Ignored paths are not added by ordinary `git add`. That is intentional. Record
-the vendor package name and version used by the fork so collaborators can
-install the same dependency locally.
+Record the STM32CubeF7 package name and version used for a reproducible build.
+Ignored paths are not added by ordinary `git add`, which is intentional.
 
-If a fork owner chooses to publish vendor sources, first verify licensing and
-provenance, then use a dedicated submodule or narrowly change `.gitignore`.
-Never force-add an entire ignored tree without reviewing its contents. Build
-artifacts, logs, editor settings, credentials, private keys, and generated
-secret-bearing files must remain untracked.
+Before publishing vendor sources, verify their license and provenance. If the
+project later needs reproducible dependency retrieval, use a reviewed submodule
+or dependency-fetch procedure rather than force-adding an entire local package.
+Build products, logs, editor settings, credentials, private keys, and other
+machine-specific or secret-bearing files must remain untracked.
 
 ---
 
-Copyright © 2017-2026 Dmitry Slobodchikov.
+Copyright © 2017-2026 Askug Ltd.

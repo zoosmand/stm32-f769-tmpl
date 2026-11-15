@@ -1,124 +1,113 @@
 # Naming conventions
 
-This document defines the preferred naming style for project-owned STM32F767
-health-check firmware in `Core`, `Periph`, `Srv`, project-owned `lwip/system`,
-and `TLS`. Imported FreeRTOS, CMSIS, LAN8742, lwIP, and Mbed TLS code keeps its
-upstream style.
+This document defines the preferred style for project-owned STM32F769I-DISCO
+firmware in `Core` and `LWIP`. Imported STM32CubeF7 HAL, CMSIS, BSP, and lwIP
+code retains its upstream style. CubeMX-generated symbols and user-code markers
+also retain their generated form so the project remains understandable and can
+be compared with regenerated output.
 
-The conventions describe the target style. Existing names are changed only in
-dedicated refactoring work, because renaming an API can affect several modules.
+These conventions describe the target style. Existing APIs are renamed only in
+dedicated refactoring work because a rename can affect multiple modules and
+application code.
 
 ## General rules
 
 - Use English names that describe purpose rather than implementation detail.
 - Spell out words unless an abbreviation is established in the hardware or
   protocol documentation.
-- Keep hardware and protocol names in their canonical form: `DS18B20`,
-  `Ethernet`, `HTTPS`, `IWDG`, `LAN8742`, `lwIP`, `Mbed TLS`, `NTP`, `RMII`,
-  `RTC`, `SPI`, `TLS`, and `W25Q64`.
-- Include units in names when the type alone does not make them clear, for
-  example `periodMs`, `temperatureCentiDegrees`, or `humidityMilliPercent`.
-- Avoid new identifiers beginning with an underscore. C reserves several such
-  forms for the implementation.
-- Use one term consistently for one concept. Prefer `Init`, `Read`, `Write`,
-  `Measure`, `Get`, `Set`, `Lock`, `Unlock`, `Register`, and `Report`.
+- Keep canonical hardware and protocol spelling, including `DMA2D`, `DSI`,
+  `Ethernet`, `FMC`, `FT6206`, `HDMI`, `I2C`, `ITM`, `LAN8742`, `LTDC`, `lwIP`,
+  `MPU`, `OTM8009A`, `QSPI`, `SDRAM`, `STM32F769`, and `USART`.
+- Include units where the type alone is ambiguous, for example `timeoutMs`,
+  `frequencyHz`, or `frameBufferSizeBytes`.
+- Do not introduce identifiers beginning with an underscore; C reserves many
+  such forms for the implementation.
+- Use one term consistently for one concept. Prefer operations such as `Init`,
+  `Read`, `Write`, `Get`, `Set`, `Enable`, `Disable`, `Lock`, and `Unlock`.
 
 ## Files and modules
 
-- Use lowercase `snake_case` file names: `health_service.c`.
+- Use lowercase `snake_case` for new project-owned file names.
 - Give a public header the same base name as its implementation file.
-- STM32 initialization and board-level facilities belong in `Core`;
-  FreeRTOS-based application services belong in `Srv`; project-owned lwIP
-  integration belongs under `lwip/system`; TLS configuration, trust data, and
-  transport code belong in `TLS`.
-- Keep imported source files in their upstream directory structure. Do not
-  rename vendor files merely to satisfy this document.
+- Keep MCU and board initialization, peripheral drivers, and display code in
+  `Core` until the project adopts a more detailed module layout.
+- Keep project-owned network configuration and Ethernet adaptation in `LWIP`.
+- Keep imported sources in their upstream directory structure and do not rename
+  them solely to satisfy this document.
 
 ## Functions
 
-- Public functions use `PascalCase` with a module prefix:
-  `HealthService_Init`, `Rtc_GetUnixTime`, `TlsTransport_Head`.
-- Private functions use `camelCase` with a module prefix:
-  `healthService_WatchdogReload`.
-- Use an underscore between the module name and the operation for new public
-APIs.
-- Use verbs for operations and nouns only for accessors that return an object.
-- An `Init` function initializes hardware or creates a service and does not
-  perform periodic work.
+- Public project functions use `PascalCase` with a module prefix, such as
+  `Display_Run`, `OTM8009A_Init`, or `SDRAM_WriteBuffer`.
+- New private functions use `camelCase` and are declared `static`, for example
+  `display_SwapLayers`.
+- Preserve required framework patterns such as `HAL_*`, `MX_*`, interrupt
+  handlers, callbacks, and libc system-call hooks.
+- Use verbs for operations and nouns only for accessors returning an object.
+- An `Init` function initializes a subsystem; it should not silently start
+  unrelated application behavior.
 - A `Get` function does not transfer ownership of returned storage unless its
-  documentation explicitly says otherwise.
-- Boolean predicates should begin with `Is`, `Has`, or `Can`.
+  documentation says otherwise.
+- Boolean predicates begin with `Is`, `Has`, or `Can` where practical.
 
 ## Types and enumerators
 
-- Public typedef names use `PascalCase` and end in `_TypeDef`:
-  `SensorSnapshot_TypeDef`.
+- Public project typedefs use `PascalCase` and the `_TypeDef` suffix, matching
+  the established firmware style: `Display_TypeDef`.
 - Structure names describe one object; collection names describe the contained
   set.
-- Enum constants and bit flags use uppercase `SNAKE_CASE` with a module prefix:
-  `SENSOR_HEALTH_FAILED`.
-- Structure members and function parameters use `camelCase`.
-- New code should not introduce `_t` typedef names because POSIX reserves many
-  names with that suffix. Existing Bosch calibration types can be migrated in
-  a separate compatibility-aware refactor.
+- Enum constants and bit flags use uppercase `SNAKE_CASE` with a module prefix.
+- Structure members and function parameters use `camelCase` in new code.
+- Avoid new `_t` typedef names because POSIX reserves many names with that
+  suffix. Do not rewrite imported types.
 
-## Variables and constants
+## Variables, constants, and macros
 
-- Local variables and parameters use `camelCase`.
-- File-local variables use `camelCase`; their `static` storage already conveys
-  privacy.
+- Local variables and parameters use `camelCase` in new project-owned code.
+- File-local variables use `camelCase`; `static` already communicates scope.
 - Compile-time constants and macros use uppercase `SNAKE_CASE`.
-- Macros that behave like functions use uppercase `SNAKE_CASE` and parenthesize
-  every parameter and the complete expression.
-- FreeRTOS handles should identify the owned object, for example
-  `healthTaskHandle`, `networkReadyEvent`, or `tlsMutex`.
+- Function-like macros use uppercase `SNAKE_CASE` and parenthesize each
+  parameter and the complete expression.
+- Peripheral handles generated by CubeMX retain names such as `hdma2d`, `hdsi`,
+  `hltdc`, and `hsdram1`.
 
 ## Documentation
 
-Document every project-owned function where it is declared. Document a private
-function immediately above its definition or prototype. Do not duplicate a
-complete public API description in both the header and source file.
+Document project-owned public functions at their declarations. Document a
+private function immediately above its definition or prototype when its
+contract or behavior is not obvious. Do not duplicate a complete API contract
+in both the header and source file.
 
-Function documentation uses this form:
-
-```c
-/**
-  * @brief Perform an authenticated HTTPS HEAD request.
-  * @param hostName (const char*) Non-null DNS host name used for SNI and
-  *        certificate validation.
-  * @param path (const char*) Non-null HTTP request path.
-  * @param result (TlsTransport_ResultTypeDef*) Non-null result storage.
-  * @retval (TlsTransport_StatusTypeDef) Transport completion status.
-  */
-```
-
-Use `@param` only for real parameters; omit it for a `void` parameter list.
-Use `@retval` only for functions that return a value. State units, ownership,
-valid ranges, nullability, blocking behavior, and task/interrupt restrictions
-when they matter.
-
-Structure documentation lists the purpose and meaning of every member:
+Use Doxygen comments for interfaces:
 
 ```c
 /**
-  * @brief Result of one HTTPS resource check.
-  * @param statusCode (uint16_t) Parsed HTTP response status.
-  * @param elapsedMs (uint32_t) Total request duration in milliseconds.
-  * @param detail (int32_t) Layer-specific diagnostic value.
+  * @brief Fill a rectangular framebuffer region with one color.
+  * @param layer (Display_LayerTypeDef*) Non-null destination layer.
+  * @param x (uint16_t) Left coordinate in pixels.
+  * @param y (uint16_t) Top coordinate in pixels.
+  * @param width (uint16_t) Width in pixels.
+  * @param height (uint16_t) Height in pixels.
+  * @param color (uint32_t) Pixel color in the layer's configured format.
+  * @retval (HAL_StatusTypeDef) HAL_OK on success; otherwise a HAL error status.
   */
 ```
+
+Use `@param` only for actual parameters and `@retval` only for functions that
+return a value. State units, address basis, ownership, valid ranges,
+nullability, blocking behavior, cache maintenance, DMA requirements, and
+interrupt restrictions whenever they affect correct use.
 
 ## Compatibility notes
 
-Project-owned adapters may expose conventional names around imported APIs, but
-they must not rewrite vendor interfaces. STM32 HAL callbacks and handles,
-FreeRTOS types, lwIP callbacks, Mbed TLS APIs, CMSIS symbols, and linker/startup
-symbols retain their required upstream spelling.
+Do not rewrite STM32 HAL callbacks and handles, CMSIS symbols, lwIP APIs,
+interrupt names, linker symbols, startup symbols, or register-field names.
+Names tied to peripheral registers, board schematic nets, protocol fields, or
+datasheet formulas should remain traceable to their source documentation.
 
-Names tied to a peripheral register, protocol field, certificate property, or
-datasheet formula should remain traceable to the corresponding specification.
-Compatibility-sensitive renames belong in dedicated refactoring changes.
+Compatibility-sensitive renames belong in dedicated refactoring changes with a
+clean build and target-device regression test.
 
 ---
 
-Copyright © 2017-2026 Dmitry Slobodchikov.
+Copyright © 2017-2026 Askug Ltd.
