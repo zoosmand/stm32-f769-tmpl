@@ -19,6 +19,7 @@
 #include "console.h"
 #include "fmc.h"
 #include "ft6206.h"
+#include "log_buffer.h"
 #include "lwip.h"
 #include "otm8009a.h"
 #include "self_test.h"
@@ -106,7 +107,8 @@ static void itm_WriteChar(char ch)
 }
 
 /**
-  * @brief newlib stdout/stderr hook: mirror output to ITM port 0 and USART1.
+  * @brief newlib stdout/stderr hook: mirror output to the on-screen log,
+  *        ITM port 0, and USART1.
   * @note  Blocking for at most STDOUT_UART_TIMEOUT_MS per call. Thread context
   *        only; not reentrant with respect to interrupt handlers.
   */
@@ -117,6 +119,9 @@ int _write(int file, char *ptr, int len)
   {
     return 0;
   }
+
+  /* On-screen log copy; rendered later by the UI in main-loop context. */
+  LogBuffer_Write(ptr, (size_t)len);
 
   for (int i = 0; i < len; i++)
   {
@@ -166,6 +171,8 @@ int main(void)
 
   Display_TypeDef *display = OTM8009A_Init();
   TouchScreen_TypeDef *touch = FT6206_Init();
+  /* Non-blocking: PHY detection, link and DHCP are polled from the loop. */
+  MX_LWIP_Init();
 
   /* Static lifetime: the console keeps this context for on-demand tests. */
   static SelfTest_Context_TypeDef selfTestContext = {
@@ -199,6 +206,7 @@ int main(void)
   while (1)
   {
     Console_Process();
+    MX_LWIP_Process();
     App_Process();
   }
 }

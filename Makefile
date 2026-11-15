@@ -40,6 +40,8 @@ Core/Src/main.c \
 Core/Src/app.c \
 Core/Src/self_test.c \
 Core/Src/console.c \
+Core/Src/log_buffer.c \
+Core/Src/ui.c \
 Core/Src/stm32f7xx_it.c \
 Core/Src/stm32f7xx_hal_msp.c \
 LWIP/App/lwip.c \
@@ -157,7 +159,6 @@ Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_sdram.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_ltdc.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_ltdc_ex.c \
 Core/Src/fmc.c \
-Core/Src/display.c \
 Core/Src/otm8009a.c \
 Core/Src/ft6206.c \
 Core/Src/dot_5x7.c \

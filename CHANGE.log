@@ -4,6 +4,45 @@ STM32F769I-DISCO firmware change log
 Unreleased
 ----------
 
+Added (issue #7)
+* Touch user interface (ui.c): a home screen with NETWORK and LOG buttons and a
+  status line, a Network screen (link, speed/duplex, DHCP state, IP address,
+  netmask, gateway, DNS, MAC, uptime), and a Log screen; both detail screens
+  have a BACK button. The UI lays out in top-left coordinates and converts to
+  the display driver's bottom-left origin; touch Y is converted the same way.
+* On-screen printf() log: _write() copies all stdout text into a 64-line ring
+  buffer (log_buffer.c, 66 columns), rendered with font_dot_10x14 (12 x 16
+  cells, 26 visible rows). Only changed characters are redrawn, at most every
+  100 ms.
+* Console commands "net", "screen [home|network|log]", and "tap <x> <y>"
+  (top-left pixel coordinates) for remote UI and network checks.
+* POST test "eth": lwIP started, LAN8742 detected, PHY ID 0x0007:0xC13x; link
+  and DHCP state are reported for information.
+* Ethernet link changes and DHCP leases are logged through printf().
+
+Changed (issue #7)
+* Bare-metal lwIP/Ethernet is enabled again: MX_LWIP_Init() runs after touch
+  initialization and MX_LWIP_Process() runs in the main loop. The fixed 2.5 s
+  delay and 2 s PHY wait were removed; PHY detection is retried by the 100 ms
+  link poll, so boot no longer blocks.
+* The crosshair touch demo (display.c, Display_Run()) was replaced by the UI;
+  touch_activated_flag is now declared in ft6206.h.
+* The intrusive "display" test repaints the current UI screen afterwards.
+
+Fixed (issue #7)
+* dhcp_start() was called on an administratively down interface and failed
+  ("netif is not up"); the interface is now brought up before DHCP starts.
+* The Ethernet MAC address pointer handed to HAL referenced a stack array; it
+  is now static.
+* A failed HAL_ETH_Init() no longer halts the board in Error_Handler(); it is
+  logged and networking stays down.
+
+Memory impact (issue #7, arm-none-eabi-size, -Og)
+* Flash text 52,292 -> 112,048 bytes (lwIP linked in again, UI, fonts).
+* DTCM data+bss 9,256 -> 40,828 bytes (lwIP heap and pools ~30 KiB, log buffer
+  4.3 KiB). The lwIP RX buffer pool is in DTCM, which is uncached and reachable
+  by the Ethernet DMA; descriptors stay in the dedicated Ethernet RAM.
+
 Changed
 * Separated application processing from order-sensitive board initialization
   through App_Init() and non-blocking App_Process() entry points.
@@ -65,7 +104,8 @@ Memory impact (arm-none-eabi-size, -Og)
 
 Known limitations
 * FreeRTOS is not yet included or started; lwIP remains configured for NO_SYS.
-* Ethernet initialization remains disabled in main.c.
+* DNS is not configured (LWIP_DNS is 0), so the Network screen shows n/a.
+* The Log screen shows the newest 26 lines; scrolling is not implemented.
 * Target hardware (STM32F769I-DISCO) verified: POST 13/13 and "test all" 15/15
   pass, console commands verified over the ST-LINK virtual COM port. Touch
   gestures were not exercised physically.

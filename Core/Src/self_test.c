@@ -2,8 +2,11 @@
 
 #include "fmc.h"
 #include "ft6206.h"
+#include "lan8742.h"
+#include "lwip.h"
 #include "main.h"
 #include "otm8009a.h"
+#include "ui.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -364,6 +367,38 @@ static bool test_Codec(const SelfTest_Context_TypeDef *context)
   return passed;
 }
 
+/** PHY object owned by ethernetif.c. */
+extern lan8742_Object_t LAN8742;
+
+static bool test_Ethernet(const SelfTest_Context_TypeDef *context)
+{
+  (void)context;
+  Network_StatusTypeDef status;
+  (void)Network_GetStatus(&status);
+
+  bool passed = selfTest_Check("lwIP started", status.Initialized, "%lu", 0UL);
+  passed &= selfTest_Check("LAN8742 detected", LAN8742.Is_Initialized != 0U,
+                           "MDIO address %lu", (unsigned long)LAN8742.DevAddr);
+
+  /* PHY identifier: OUI 0x0007, model 0xC13x for the LAN8742A. */
+  uint32_t id1 = 0U;
+  uint32_t id2 = 0U;
+  const bool read = (LAN8742.Is_Initialized != 0U) &&
+      (HAL_ETH_ReadPHYRegister(&heth, LAN8742.DevAddr, 2U, &id1) == HAL_OK) &&
+      (HAL_ETH_ReadPHYRegister(&heth, LAN8742.DevAddr, 3U, &id2) == HAL_OK);
+  passed &= selfTest_Check("PHY ID 0x0007:0xC13x",
+                           read && (id1 == 0x0007U) &&
+                           ((id2 & 0xFFF0U) == 0xC130U),
+                           "0x%08lX", (id1 << 16) | id2);
+
+  /* Link and DHCP depend on the cable and network: informational only. */
+  printf("    ok   %-22s %s\r\n", "link (informational)",
+         status.LinkUp ? "up" : "down");
+  printf("    ok   %-22s %s\r\n", "DHCP (informational)",
+         Network_GetDhcpStateName(status.DhcpState));
+  return passed;
+}
+
 static bool test_SdramProbe(const SelfTest_Context_TypeDef *context)
 {
   SDRAM_HandleTypeDef *sdram = context->Sdram;
@@ -711,6 +746,8 @@ static bool test_Display(const SelfTest_Context_TypeDef *context)
   passed &= selfTest_Check("background restored",
                            Display_FillLayer(display, L1, display->BgLayer1) ==
                            HAL_OK, "0x%08lX", display->BgLayer1);
+  /* Repaint the touch UI, if it is running, over the restored background. */
+  Ui_ShowScreen(Ui_GetScreen());
   return passed;
 }
 
@@ -764,6 +801,7 @@ static const SelfTest_Case_TypeDef selfTestCases[] = {
   { "i2c4",    "I2C4 bus scan (touch, codec)",                 true,  test_I2c4 },
   { "touch",   "FT6206 identification and status",             true,  test_Touch },
   { "codec",   "WM8994 audio codec chip ID over I2C4",         true,  test_Codec },
+  { "eth",     "Ethernet MAC/LAN8742 PHY identification",      true,  test_Ethernet },
   { "sdram",   "non-destructive SDRAM probe (top 64 bytes)",   true,  test_SdramProbe },
   { "dma2d",   "DMA2D register-to-memory fill into scratch",   true,  test_Dma2d },
   { "ltdc",    "LTDC enable, layer, refresh rate",             true,  test_Ltdc },

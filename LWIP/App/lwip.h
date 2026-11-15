@@ -1,8 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : LWIP.h
-  * Description        : This file provides code for the configuration
-  *                      of the LWIP.
+  * Description        : Bare-metal lwIP integration and network status.
   ******************************************************************************
   * @attention
   *
@@ -13,17 +12,16 @@
   * in the root directory of this software component.
   * If no LICENSE file comes with this software, it is provided AS-IS.
   *
-  *************************************************************************
-
+  ******************************************************************************
   */
-/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __mx_lwip_H
 #define __mx_lwip_H
 #ifdef __cplusplus
  extern "C" {
 #endif
 
-/* Includes ------------------------------------------------------------------*/
+#include <stdbool.h>
+
 #include "lwip/opt.h"
 #include "lwip/mem.h"
 #include "lwip/memp.h"
@@ -33,36 +31,55 @@
 #include "lwip/timeouts.h"
 #include "ethernetif.h"
 
-#if WITH_RTOS
-#include "lwip/tcpip.h"
-#endif /* WITH_RTOS */
-
-
-
 extern ETH_HandleTypeDef heth;
 
-/* LWIP init function */
+/** Snapshot of the Ethernet interface state. */
+typedef struct
+{
+  bool Initialized;        /**< MX_LWIP_Init() has run. */
+  bool LinkUp;             /**< PHY reports an established link. */
+  bool InterfaceUp;        /**< lwIP netif administratively up. */
+  bool DhcpBound;          /**< DHCP supplied the current address. */
+  uint8_t DhcpState;       /**< lwIP DHCP_STATE_* value. */
+  uint32_t SpeedMbps;      /**< 10 or 100 while the link is up, else 0. */
+  bool FullDuplex;         /**< Duplex mode while the link is up. */
+  ip4_addr_t Address;      /**< Interface IPv4 address (0 when none). */
+  ip4_addr_t Netmask;      /**< IPv4 netmask. */
+  ip4_addr_t Gateway;      /**< Default gateway. */
+  ip4_addr_t Dns;          /**< First DNS server (0 when LWIP_DNS is off). */
+  uint8_t Mac[6];          /**< Interface MAC address. */
+} Network_StatusTypeDef;
+
+/**
+  * @brief Initialize lwIP (NO_SYS), the Ethernet MAC, and start DHCP.
+  * @note  Does not wait for the PHY or a link; both are polled by
+  *        MX_LWIP_Process(). Call once from main() after HAL and clocks.
+  */
 void MX_LWIP_Init(void);
 
-#if !WITH_RTOS
-/* Function defined in lwip.c to:
- *   - Read a received packet from the Ethernet buffers
- *   - Send it to the lwIP stack for handling
- *   - Handle timeouts if NO_SYS_NO_TIMERS not set
- */
+/**
+  * @brief Receive frames, run lwIP timers, poll the link every 100 ms, and log
+  *        link/DHCP changes through printf().
+  * @note  Non-blocking; call continuously from the main loop only.
+  */
 void MX_LWIP_Process(void);
 
-#endif /* WITH_RTOS */
+/**
+  * @brief Copy the current interface state.
+  * @param status (Network_StatusTypeDef*) Non-null destination.
+  * @retval (HAL_StatusTypeDef) HAL_OK, or HAL_ERROR for a null argument.
+  * @note  Main-loop context only (reads lwIP state without locking).
+  */
+HAL_StatusTypeDef Network_GetStatus(Network_StatusTypeDef *status);
+
+/**
+  * @brief Return a short static name for a DHCP_STATE_* value.
+  * @param state (uint8_t) lwIP DHCP state.
+  * @retval (const char*) Non-null constant string.
+  */
+const char *Network_GetDhcpStateName(uint8_t state);
 
 #ifdef __cplusplus
 }
 #endif
 #endif /*__ mx_lwip_H */
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */

@@ -1,7 +1,9 @@
 #include "console.h"
 
+#include "lwip.h"
 #include "main.h"
 #include "otm8009a.h"
+#include "ui.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,6 +104,9 @@ static void console_Help(void)
   printf("  led <1|2> <on|off|toggle> drive a user LED\r\n");
   printf("  bright <0-255>            OTM8009A display brightness (DCS)\r\n");
   printf("  info                      clocks, uptime, device state\r\n");
+  printf("  net                       Ethernet link, DHCP and addresses\r\n");
+  printf("  screen [home|network|log] show or select the UI screen\r\n");
+  printf("  tap <x> <y>               inject a touch tap (pixels)\r\n");
   printf("  reset                     system reset\r\n");
 }
 
@@ -219,6 +224,77 @@ static void console_Info(void)
   printf("console    %lu bytes dropped\r\n", (unsigned long)consoleRxDropped);
 }
 
+static void console_Network(void)
+{
+  Network_StatusTypeDef status;
+  if ((Network_GetStatus(&status) != HAL_OK) || !status.Initialized)
+  {
+    printf("network not started\r\n");
+    return;
+  }
+
+  char address[16];
+  char netmask[16];
+  char gateway[16];
+  (void)ip4addr_ntoa_r(&status.Address, address, sizeof(address));
+  (void)ip4addr_ntoa_r(&status.Netmask, netmask, sizeof(netmask));
+  (void)ip4addr_ntoa_r(&status.Gateway, gateway, sizeof(gateway));
+  printf("link       %s", status.LinkUp ? "up" : "down");
+  if (status.LinkUp)
+  {
+    printf(", %lu Mbit/s %s duplex", (unsigned long)status.SpeedMbps,
+           status.FullDuplex ? "full" : "half");
+  }
+  printf("\r\nDHCP       %s\r\n", Network_GetDhcpStateName(status.DhcpState));
+  printf("address    %s\r\nnetmask    %s\r\ngateway    %s\r\n", address,
+         netmask, gateway);
+  printf("MAC        %02X:%02X:%02X:%02X:%02X:%02X\r\n", status.Mac[0],
+         status.Mac[1], status.Mac[2], status.Mac[3], status.Mac[4],
+         status.Mac[5]);
+}
+
+static void console_Screen(uint32_t argc, char *argv[])
+{
+  if (argc >= 2U)
+  {
+    static const Ui_ScreenTypeDef screens[] = {
+      UI_SCREEN_HOME, UI_SCREEN_NETWORK, UI_SCREEN_LOG,
+    };
+    bool found = false;
+    for (uint32_t index = 0U; index < 3U; index++)
+    {
+      if (strcmp(argv[1], Ui_GetScreenName(screens[index])) == 0)
+      {
+        Ui_ShowScreen(screens[index]);
+        found = true;
+      }
+    }
+    if (!found)
+    {
+      printf("usage: screen [home|network|log]\r\n");
+      return;
+    }
+  }
+  printf("screen %s\r\n", Ui_GetScreenName(Ui_GetScreen()));
+}
+
+static void console_Tap(uint32_t argc, char *argv[])
+{
+  char *endX = NULL;
+  char *endY = NULL;
+  const unsigned long x = (argc == 3U) ? strtoul(argv[1], &endX, 0) : 0UL;
+  const unsigned long y = (argc == 3U) ? strtoul(argv[2], &endY, 0) : 0UL;
+  if ((argc != 3U) || (*endX != '\0') || (*endY != '\0') ||
+      (x > UINT16_MAX) || (y > UINT16_MAX))
+  {
+    printf("usage: tap <x> <y>\r\n");
+    return;
+  }
+  const bool hit = Ui_HandleTap((uint16_t)x, (uint16_t)y);
+  printf("tap %lu,%lu: %s, screen %s\r\n", x, y, hit ? "button" : "no button",
+         Ui_GetScreenName(Ui_GetScreen()));
+}
+
 static void console_Execute(char *line)
 {
   char *argv[CONSOLE_MAX_ARGUMENTS];
@@ -259,6 +335,18 @@ static void console_Execute(char *line)
   else if (strcmp(argv[0], "info") == 0)
   {
     console_Info();
+  }
+  else if (strcmp(argv[0], "net") == 0)
+  {
+    console_Network();
+  }
+  else if (strcmp(argv[0], "screen") == 0)
+  {
+    console_Screen(argc, argv);
+  }
+  else if (strcmp(argv[0], "tap") == 0)
+  {
+    console_Tap(argc, argv);
   }
   else if (strcmp(argv[0], "reset") == 0)
   {
