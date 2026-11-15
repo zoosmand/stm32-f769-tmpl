@@ -23,9 +23,9 @@ The current `dev` firmware configures:
 - USART1 and ITM/SWO output for `printf`, plus a USART1 command console;
 - a power-on self-test and on-demand peripheral tests;
 - CRC and board GPIO;
-- a bare-metal lwIP/Ethernet implementation with LAN8742 and DHCP code.
+- bare-metal lwIP over Ethernet (LAN8742 PHY) with DHCP;
+- a touch UI with Network and printf() Log screens.
 
-Ethernet initialization and processing are currently disabled in `main.c`.
 Other onboard interfaces, QSPI boot, and HDMI support remain future work.
 
 ## Requirements
@@ -75,10 +75,23 @@ framebuffers.
 
 After reset, the firmware initializes the clock tree and core memory
 attributes, starts SDRAM and the display pipeline, initializes the touch
-controller, runs the power-on self-test, and enters the interactive display
-loop. Diagnostic output is sent to both USART1 and ITM stimulus port 0 (SWO,
+controller and Ethernet, runs the power-on self-test, and shows the touch UI.
+Ethernet does not delay boot: the PHY, link, and DHCP lease are handled in the
+main loop and logged when they change. Diagnostic output is sent to both USART1 and ITM stimulus port 0 (SWO,
 1.8 MHz NRZ); the firmware configures the TPIU itself, so no debugger is
 required.
+
+## Touch user interface
+
+The home screen shows two buttons and a status line with the IP address, link
+state, and uptime:
+
+- **NETWORK** opens link, speed/duplex, DHCP state, IP address, netmask,
+  gateway, DNS, and MAC address, refreshed every 0.5 s;
+- **LOG** opens the most recent `printf()` output (everything also sent to
+  USART1), drawn with the 10x14 bitmap font and updated live.
+
+Both screens have a **< BACK** button in the top-left corner.
 
 ## Diagnostic console and peripheral tests
 
@@ -92,11 +105,14 @@ test <name|post|all>      run one test, the POST suite, or every test
 led <1|2> <on|off|toggle> drive a user LED
 bright <0-255>            OTM8009A display brightness (DCS)
 info                      clocks, uptime, device state
+net                       Ethernet link, DHCP and addresses
+screen [home|network|log] show or select the UI screen
+tap <x> <y>               inject a touch tap (pixels, top-left origin)
 reset                     system reset
 ```
 
 The POST runs `core`, `clock`, `usart`, `crc`, `i2c1`, `i2c4`, `touch`,
-`codec`, `sdram`, `dma2d`, `ltdc`, `dsi`, and `gpio`; none alter the display or
+`codec`, `eth`, `sdram`, `dma2d`, `ltdc`, `dsi`, and `gpio`; none alter the display or
 framebuffers. The intrusive tests `sdramfull` (8 MiB data/address-bus and
 pattern test of the unused upper SDRAM half) and `display` (color bars with
 framebuffer readback) run only on request. Each check prints `ok`/`FAIL` with a

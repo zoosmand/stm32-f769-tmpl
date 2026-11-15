@@ -26,6 +26,8 @@
 #include "netif/etharp.h"
 #include "lwip/ethip6.h"
 #include "ethernetif.h"
+
+#include <stdio.h>
 #include "lan8742.h"
 #include <string.h>
 
@@ -120,6 +122,9 @@ int32_t ETH_PHY_IO_WriteReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t RegVal)
 int32_t ETH_PHY_IO_GetTick(void);
 
 lan8742_Object_t LAN8742;
+
+/** Set once HAL_ETH_Init() succeeded; PHY polling is skipped otherwise. */
+static uint8_t ethMacReady;
 lan8742_IOCtx_t  LAN8742_IOCtx = {ETH_PHY_IO_Init,
                                   ETH_PHY_IO_DeInit,
                                   ETH_PHY_IO_WriteReg,
@@ -146,9 +151,8 @@ void pbuf_free_custom(struct pbuf *p);
 static void low_level_init(struct netif *netif)
 {
   HAL_StatusTypeDef hal_eth_init_status = HAL_OK;
-  /* Start ETH HAL Init */
-
-   uint8_t MACAddr[6] ;
+  /* HAL keeps a pointer to the MAC address, so it needs static storage. */
+  static uint8_t MACAddr[6];
   heth.Instance = ETH;
   MACAddr[0] = 0x00;
   MACAddr[1] = 0x80;
@@ -165,6 +169,15 @@ static void low_level_init(struct netif *netif)
 
 
   hal_eth_init_status = HAL_ETH_Init(&heth);
+  if (hal_eth_init_status != HAL_OK)
+  {
+    /* No RMII reference clock or MAC fault: keep the rest of the board alive. */
+    printf("ETH: MAC initialization failed (0x%08lX)\r\n", heth.ErrorCode);
+    netif_set_link_down(netif);
+    netif_set_down(netif);
+    return;
+  }
+  ethMacReady = 1U;
 
   memset(&TxConfig, 0 , sizeof(ETH_TxPacketConfig));
   TxConfig.Attributes = ETH_TX_PACKETS_FEATURES_CSUM | ETH_TX_PACKETS_FEATURES_CRCPAD;
@@ -204,7 +217,8 @@ static void low_level_init(struct netif *netif)
   /* Set PHY IO functions */
   LAN8742_RegisterBusIO(&LAN8742, &LAN8742_IOCtx);
 
-  /* Initialize the LAN8742 ETH PHY */
+  /* Detect the LAN8742 now; ethernet_link_check_state() retries every poll
+     if the PHY is still in reset, so boot never waits for it. */
   if(LAN8742_Init(&LAN8742) != LAN8742_STATUS_OK)
   {
     netif_set_link_down(netif);
@@ -212,15 +226,7 @@ static void low_level_init(struct netif *netif)
     return;
   }
 
-  if (hal_eth_init_status == HAL_OK)
-  {
-  /* Get link state */
   ethernet_link_check_state(netif);
-  }
-  else
-  {
-    Error_Handler();
-  }
 #endif /* LWIP_ARP || LWIP_ETHERNET */
 
 
@@ -595,6 +601,16 @@ void ethernet_link_check_state(struct netif *netif)
   ETH_MACConfigTypeDef MACConf = {0};
   int32_t PHYLinkState = 0;
   uint32_t linkchanged = 0U, speed = 0U, duplex = 0U;
+
+  if (ethMacReady == 0U)
+  {
+    return;
+  }
+  if ((LAN8742.Is_Initialized == 0U) &&
+      (LAN8742_Init(&LAN8742) != LAN8742_STATUS_OK))
+  {
+    return;
+  }
 
   PHYLinkState = LAN8742_GetLinkState(&LAN8742);
 

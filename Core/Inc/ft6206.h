@@ -22,6 +22,10 @@
 /** I2C4 bus configured by platform initialization for the touch controller. */
 extern I2C_HandleTypeDef hi2c4;
 
+/** TOUCH_ACTIVE after the FT6206 INT falling edge (set in the EXTI callback);
+    TouchScreen_Process() resets it to TOUCH_IDLE before sampling. */
+extern volatile TouchState_t touch_activated_flag;
+
 #define FT6206_I2C_ADDR   0x2a
 
 #define FT6x02_DEV_MODE             0x00

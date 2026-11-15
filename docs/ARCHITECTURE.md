@@ -9,13 +9,21 @@ main.c       clock, MPU/cache, peripheral and board-device initialization
 app.c        application ownership and one non-blocking processing iteration
 console.c    USART1 command console (diagnostics), polled from the main loop
 self_test.c  power-on self-test and on-demand peripheral tests
-display.c    interactive display behavior
+ui.c         touch UI: home, Network, and printf() Log screens
+log_buffer.c line ring buffer filled from _write() for the Log screen
 drivers      OTM8009A, FT6206, SDRAM, Ethernet, and other hardware services
 ```
 
 `main()` owns the order-sensitive platform bring-up. After every required device
 is ready, it arms the console, runs the POST, binds the devices to `App_Init()`,
-and repeatedly calls `Console_Process()` and `App_Process()`. A failed
+and repeatedly calls `Console_Process()`, `MX_LWIP_Process()`, and
+`App_Process()`. `App_Process()` turns completed touch taps into
+`Ui_HandleTap()` calls and lets `Ui_Process()` refresh the visible screen.
+
+The display driver and FT6206 use a bottom-left origin. The UI uses top-left
+coordinates and converts at its drawing boundary; `App_Process()` converts
+touch Y before calling the UI. `_write()` only appends text to the log buffer;
+rendering happens later in the main loop, so `printf()` never draws. A failed
 `App_Init()` is reported and leaves the console running for diagnosis. Application code must not initialize clocks or peripheral
 handles.
 

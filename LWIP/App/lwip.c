@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
   * File Name          : LWIP.c
-  * Description        : This file provides initialization code for LWIP
-  *                      middleWare.
+  * Description        : Bare-metal (NO_SYS) lwIP initialization, processing,
+  *                      and read-only network status for the UI and console.
   ******************************************************************************
   * @attention
   *
@@ -16,228 +16,177 @@
   ******************************************************************************
   */
 
-/* Includes ------------------------------------------------------------------*/
 #include "lwip.h"
 #include "lwip/init.h"
 #include "lwip/netif.h"
-#if defined ( __CC_ARM )  /* MDK ARM Compiler */
-#include "lwip/sio.h"
-#endif /* MDK ARM Compiler */
+#include "lwip/prot/dhcp.h"
+#if LWIP_DNS
+#include "lwip/dns.h"
+#endif
 #include "ethernetif.h"
 
-#include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
-static bool phy_wait_ready(uint32_t);
+/** Link/DHCP polling period in milliseconds. */
+#define NETWORK_POLL_PERIOD_MS  100U
 
-static void ethernet_link_status_updated(struct netif *netif);
-static void Ethernet_Link_Periodic_Handle(struct netif *netif);
-/* ETH Variables initialization ----------------------------------------------*/
-void Error_Handler(void);
-
-
-uint32_t EthernetLinkTimer;
-
-/* Variables Initialization */
 struct netif gnetif;
-ip4_addr_t ipaddr;
-ip4_addr_t netmask;
-ip4_addr_t gw;
-uint8_t IP_ADDRESS[4];
-uint8_t NETMASK_ADDRESS[4];
-uint8_t GATEWAY_ADDRESS[4];
 
+static uint32_t networkPollTimer;
+static bool networkInitialized;
+static bool networkReportedLink;
+static uint32_t networkReportedAddress;
 
-
-
-static bool phy_wait_ready(uint32_t timeout_ms)
+/** Log link and address changes once, through printf(). */
+static void network_ReportChanges(void)
 {
-  uint32_t val;
-  uint32_t t0 = HAL_GetTick();
-
-  /* 1. Wait for PHY ID */
-  while (HAL_GetTick() - t0 < timeout_ms)
+  Network_StatusTypeDef status;
+  if (Network_GetStatus(&status) != HAL_OK)
   {
-    if (HAL_ETH_ReadPHYRegister(&heth, 0x00, 0x02, &val) == HAL_OK &&
-        val == 0x0007)
-      break;
-    HAL_Delay(10);
+    return;
   }
 
-  if (val != 0x0007)
-    return false;
-
-  /* 2. Wait for autoneg + link */
-  while (HAL_GetTick() - t0 < timeout_ms)
+  if (status.LinkUp != networkReportedLink)
   {
-    HAL_ETH_ReadPHYRegister(&heth, 0x00, PHY_BSR, &val);
-
-    if ((val & PHY_AUTONEGO_COMPLETE) &&
-        (val & PHY_LINKED_STATUS))
-      return true;
-
-    HAL_Delay(10);
+    networkReportedLink = status.LinkUp;
+    if (status.LinkUp)
+    {
+      printf("ETH: link up, %lu Mbit/s %s duplex\r\n",
+             (unsigned long)status.SpeedMbps,
+             status.FullDuplex ? "full" : "half");
+    }
+    else
+    {
+      printf("ETH: link down\r\n");
+    }
   }
 
-  return false;
+  const uint32_t address = ip4_addr_get_u32(&status.Address);
+  if (address != networkReportedAddress)
+  {
+    networkReportedAddress = address;
+    if (address != 0U)
+    {
+      char ip[16];
+      char mask[16];
+      char gw[16];
+      (void)ip4addr_ntoa_r(&status.Address, ip, sizeof(ip));
+      (void)ip4addr_ntoa_r(&status.Netmask, mask, sizeof(mask));
+      (void)ip4addr_ntoa_r(&status.Gateway, gw, sizeof(gw));
+      printf("DHCP: address %s mask %s gateway %s\r\n", ip, mask, gw);
+    }
+    else
+    {
+      printf("DHCP: address released\r\n");
+    }
+  }
 }
 
-
-
-/**
-  * LwIP initialization function
-  */
 void MX_LWIP_Init(void)
 {
+  ip4_addr_t address;
+  ip4_addr_t netmask;
+  ip4_addr_t gateway;
 
-  HAL_Delay(2500);
-
-  /* Initialize the LwIP stack without RTOS */
   lwip_init();
 
-  ipaddr.addr = 0;
-  netmask.addr = 0;
-  gw.addr = 0;
+  ip4_addr_set_zero(&address);
+  ip4_addr_set_zero(&netmask);
+  ip4_addr_set_zero(&gateway);
 
-  /* add the network interface (IPv4/IPv6) without RTOS */
-  netif_add(&gnetif, &ipaddr, &netmask, &gw, NULL, &ethernetif_init, &ethernet_input);
-
-  /* Registers the default network interface */
+  /* ethernetif_init() starts the MAC and probes the PHY without blocking. */
+  netif_add(&gnetif, &address, &netmask, &gateway, NULL, &ethernetif_init,
+            &ethernet_input);
   netif_set_default(&gnetif);
 
-  /* We must always bring the network interface up connection or not... */
+  /* dhcp_start() requires an administratively up interface; DHCP then waits
+     in DHCP_STATE_INIT until the link comes up and restarts on link changes. */
   netif_set_up(&gnetif);
-
-  /* Set the link callback function, this function is called on change of link status*/
-  netif_set_link_callback(&gnetif, ethernet_link_status_updated);
-
-
-  if (!phy_wait_ready(2000)) printf("The RJ-45 cable might not be connected.\r\n");
-  
-  dhcp_start(&gnetif);
-
-}
-
-#ifdef USE_OBSOLETE_USER_CODE_SECTION_4
-/* Kept to help code migration. (See new 4_1, 4_2... sections) */
-/* Avoid to use this user section which will become obsolete. */
-#endif
-
-/**
-  * @brief  Ethernet Link periodic check
-  * @param  netif
-  * @retval None
-  */
-static void Ethernet_Link_Periodic_Handle(struct netif *netif)
-{
-
-  /* Ethernet Link every 100ms */
-  if (HAL_GetTick() - EthernetLinkTimer >= 100)
+  const err_t dhcpStatus = dhcp_start(&gnetif);
+  if (dhcpStatus != ERR_OK)
   {
-    EthernetLinkTimer = HAL_GetTick();
-    ethernet_link_check_state(netif);
+    printf("DHCP: start failed (%d)\r\n", (int)dhcpStatus);
   }
+
+  networkPollTimer = HAL_GetTick();
+  networkInitialized = true;
 }
 
-/**
- * ----------------------------------------------------------------------
- * Function given to help user to continue LwIP Initialization
- * Up to user to complete or change this function ...
- * Up to user to call this function in main.c in while (1) of main(void)
- *-----------------------------------------------------------------------
- * Read a received packet from the Ethernet buffers
- * Send it to the lwIP stack for handling
- * Handle timeouts if LWIP_TIMERS is set and without RTOS
- * Handle the llink status if LWIP_NETIF_LINK_CALLBACK is set and without RTOS
- */
 void MX_LWIP_Process(void)
 {
-  ethernetif_input(&gnetif);
+  if (!networkInitialized)
+  {
+    return;
+  }
 
-  /* Handle timeouts */
+  ethernetif_input(&gnetif);
   sys_check_timeouts();
 
-  Ethernet_Link_Periodic_Handle(&gnetif);
-
-}
-
-/**
-  * @brief  Notify the User about the network interface config status
-  * @param  netif: the network interface
-  * @retval None
-  */
-static void ethernet_link_status_updated(struct netif *netif)
-{
-  if (netif_is_up(netif))
+  if ((HAL_GetTick() - networkPollTimer) >= NETWORK_POLL_PERIOD_MS)
   {
-  }
-  else /* netif is down */
-  {
+    networkPollTimer = HAL_GetTick();
+    ethernet_link_check_state(&gnetif);
+    network_ReportChanges();
   }
 }
 
-#if defined ( __CC_ARM )  /* MDK ARM Compiler */
-/**
- * Opens a serial device for communication.
- *
- * @param devnum device number
- * @return handle to serial device if successful, NULL otherwise
- */
-sio_fd_t sio_open(u8_t devnum)
+HAL_StatusTypeDef Network_GetStatus(Network_StatusTypeDef *status)
 {
-  sio_fd_t sd;
+  if (status == NULL)
+  {
+    return HAL_ERROR;
+  }
 
-  sd = 0; // dummy code
+  memset(status, 0, sizeof(*status));
+  status->Initialized = networkInitialized;
+  if (!networkInitialized)
+  {
+    return HAL_OK;
+  }
 
-  return sd;
+  status->LinkUp = netif_is_link_up(&gnetif) != 0U;
+  status->InterfaceUp = netif_is_up(&gnetif) != 0U;
+  memcpy(status->Mac, gnetif.hwaddr, sizeof(status->Mac));
+
+  const struct dhcp *dhcp = netif_dhcp_data(&gnetif);
+  status->DhcpState = (dhcp != NULL) ? dhcp->state : DHCP_STATE_OFF;
+  status->DhcpBound = dhcp_supplied_address(&gnetif) != 0U;
+
+  ip4_addr_copy(status->Address, *netif_ip4_addr(&gnetif));
+  ip4_addr_copy(status->Netmask, *netif_ip4_netmask(&gnetif));
+  ip4_addr_copy(status->Gateway, *netif_ip4_gw(&gnetif));
+#if LWIP_DNS
+  ip4_addr_copy(status->Dns, *ip_2_ip4(dns_getserver(0)));
+#endif
+
+  if (status->LinkUp)
+  {
+    ETH_MACConfigTypeDef mac;
+    if (HAL_ETH_GetMACConfig(&heth, &mac) == HAL_OK)
+    {
+      status->SpeedMbps = (mac.Speed == ETH_SPEED_100M) ? 100U : 10U;
+      status->FullDuplex = mac.DuplexMode == ETH_FULLDUPLEX_MODE;
+    }
+  }
+  return HAL_OK;
 }
 
-/**
- * Sends a single character to the serial device.
- *
- * @param c character to send
- * @param fd serial device handle
- *
- * @note This function will block until the character can be sent.
- */
-void sio_send(u8_t c, sio_fd_t fd)
+const char *Network_GetDhcpStateName(uint8_t state)
 {
+  switch (state)
+  {
+    case DHCP_STATE_OFF:         return "off";
+    case DHCP_STATE_REQUESTING:  return "requesting";
+    case DHCP_STATE_INIT:        return "init";
+    case DHCP_STATE_REBOOTING:   return "rebooting";
+    case DHCP_STATE_REBINDING:   return "rebinding";
+    case DHCP_STATE_RENEWING:    return "renewing";
+    case DHCP_STATE_SELECTING:   return "selecting";
+    case DHCP_STATE_INFORMING:   return "informing";
+    case DHCP_STATE_CHECKING:    return "checking";
+    case DHCP_STATE_BOUND:       return "bound";
+    case DHCP_STATE_BACKING_OFF: return "backing off";
+    default:                     return "unknown";
+  }
 }
-
-/**
- * Reads from the serial device.
- *
- * @param fd serial device handle
- * @param data pointer to data buffer for receiving
- * @param len maximum length (in bytes) of data to receive
- * @return number of bytes actually received - may be 0 if aborted by sio_read_abort
- *
- * @note This function will block until data can be received. The blocking
- * can be cancelled by calling sio_read_abort().
- */
-u32_t sio_read(sio_fd_t fd, u8_t *data, u32_t len)
-{
-  u32_t recved_bytes;
-
-  recved_bytes = 0; // dummy code
-  return recved_bytes;
-}
-
-/**
- * Tries to read from the serial device. Same as sio_read but returns
- * immediately if no data is available and never blocks.
- *
- * @param fd serial device handle
- * @param data pointer to data buffer for receiving
- * @param len maximum length (in bytes) of data to receive
- * @return number of bytes actually received
- */
-u32_t sio_tryread(sio_fd_t fd, u8_t *data, u32_t len)
-{
-  u32_t recved_bytes;
-
-  recved_bytes = 0; // dummy code
-  return recved_bytes;
-}
-#endif /* MDK ARM Compiler */
-
