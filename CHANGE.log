@@ -19,13 +19,61 @@ Changed
 * Decoupled SDRAM access from the DMA2D output-address register, added null,
   alignment, overflow, and full-range validation, and made the busy timeout safe
   across HAL tick wraparound.
-* Added a non-destructive power-on self-test that reports core, clock, UART, CRC,
-  I2C, touchscreen, SDRAM, DMA2D, DSI, LTDC/display, and LED GPIO results through
-  printf() on USART1.
+* Added a non-destructive power-on self-test (13 tests) and an interactive
+  USART1 command console (help, list, test, led, bright, info, reset). Tests
+  cover core/MPU, clocks and SysTick, USART1, CRC known answers, I2C1/I2C4
+  scans, FT6206 identification, WM8994 chip ID, SDRAM probe, DMA2D fill, LTDC
+  refresh rate, DSI PHY and DCS path, and GPIO. Intrusive tests ("sdramfull",
+  "display") overwrite only the unused upper 8 MiB of SDRAM or briefly draw
+  color bars, and run only on request.
+* USART1 now runs in TX/RX mode with interrupt-driven reception (IRQ priority
+  6) into a single-producer/single-consumer ring buffer.
+
+Fixed
+* printf() hung forever in ITM_SendChar() unless a debugger captured SWO: the
+  ITM was enabled but the TPIU was never configured, so the stimulus FIFO never
+  drained and the firmware stalled before the POST or the application loop.
+  ITM_Init() now configures the TPIU (NRZ, 1.8 MHz) and ITM writes are bounded.
+* stdout UART writes use a bounded timeout instead of HAL_MAX_DELAY, and stdout
+  is unbuffered.
+* A failed App_Init() no longer halts silently in Error_Handler(); the POST runs
+  first, the failure is printed, and the console stays available.
+* SDRAM bring-up now waits the JEDEC power-up time after clock enable, uses
+  bounded command timeouts, and programs the refresh counter through
+  HAL_SDRAM_ProgramRefreshRate() instead of OR-ing into FMC_SDRTR.
+* SDRAM_CMD_SELFREFRESH_MODE was 4 (load mode register); corrected to 5.
+* FT6206: the touch interrupt flag is consumed before the I2C sample, so an
+  edge arriving during the transfer is no longer lost; the debounce deadline
+  comparison is wrap-safe; the identification read result is checked instead
+  of inspecting an uninitialized buffer; TD_STATUS values above 2 (0x0F/0xFF
+  when idle) are decoded as no contact instead of three phantom contacts.
+* Display_FillRectangle() rejects zero-sized rectangles and bounds the DMA2D
+  wait to 100 ms, returning the transfer status.
+* GET_POSITIOIN_ADDRESS renamed to GET_POSITION_ADDRESS with fully
+  parenthesized arguments.
+* Display_Run() ignores a sample whose I2C read failed; touch coordinates are
+  formatted with snprintf().
+* Redundant DMA2D register writes in MX_DMA2D_Init() were removed (every
+  HAL_DMA2D_Start() reprograms them); the LTDC line interrupt is armed through
+  HAL_LTDC_ProgramLineEvent().
+* Error_Handler() lights LD_USER1 so a fatal stop is visible.
+
+Memory impact (arm-none-eabi-size, -Og)
+* Flash text 38,812 -> 52,292 bytes; DTCM data+bss 7,840 -> 9,256 bytes.
+* Ethernet RAM, stack/heap reservation and framebuffer layout unchanged. SDRAM
+  0xC0800000-0xC0FFFFFF is used only as scratch by the intrusive tests.
 
 Known limitations
 * FreeRTOS is not yet included or started; lwIP remains configured for NO_SYS.
 * Ethernet initialization remains disabled in main.c.
-* Display drawing and touchscreen behavior still require target-hardware
-  regression testing after this refactor.
+* Target hardware (STM32F769I-DISCO) verified: POST 13/13 and "test all" 15/15
+  pass, console commands verified over the ST-LINK virtual COM port. Touch
+  gestures were not exercised physically.
+* Layer "double buffering" is ineffective: HAL_LTDC_LineEventCallback() only
+  edits HAL's software copy of the layer configuration (hltdc->LayerCfg) and
+  reloads shadow registers, so CFBAR never changes and drawing goes straight to
+  the visible front buffer. The line event is also re-armed mid-frame rather
+  than in vertical blanking. Enabling real swapping requires drawing into the
+  back buffer and programming CFBAR through HAL_LTDC_SetAddress_NoReload();
+  left unchanged to preserve current display behavior.
 * QSPI boot, HDMI, and remaining board peripherals are outside this change.

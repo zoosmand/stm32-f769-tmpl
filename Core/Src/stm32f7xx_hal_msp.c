@@ -19,35 +19,17 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-
-
-
-
-
-
-
-
-
-
-
 /* External functions --------------------------------------------------------*/
-
-
 
 /**
   * Initializes the Global MSP.
   */
 void HAL_MspInit(void)
 {
-
-
-
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_RCC_SYSCFG_CLK_ENABLE();
 
   /* System interrupt init*/
-
-
 }
 
 /**
@@ -60,13 +42,9 @@ void HAL_CRC_MspInit(CRC_HandleTypeDef* hcrc)
 {
   if(hcrc->Instance==CRC)
   {
-
     /* Peripheral clock enable */
     __HAL_RCC_CRC_CLK_ENABLE();
-
-
   }
-
 }
 
 /**
@@ -79,12 +57,9 @@ void HAL_CRC_MspDeInit(CRC_HandleTypeDef* hcrc)
 {
   if(hcrc->Instance==CRC)
   {
-
     /* Peripheral clock disable */
     __HAL_RCC_CRC_CLK_DISABLE();
-
   }
-
 }
 
 /**
@@ -97,13 +72,9 @@ void HAL_DMA2D_MspInit(DMA2D_HandleTypeDef* hdma2d)
 {
   if(hdma2d->Instance==DMA2D)
   {
-
     /* Peripheral clock enable */
     __HAL_RCC_DMA2D_CLK_ENABLE();
-
-
   }
-
 }
 
 /**
@@ -116,12 +87,9 @@ void HAL_DMA2D_MspDeInit(DMA2D_HandleTypeDef* hdma2d)
 {
   if(hdma2d->Instance==DMA2D)
   {
-
     /* Peripheral clock disable */
     __HAL_RCC_DMA2D_CLK_DISABLE();
-
   }
-
 }
 
 /**
@@ -135,7 +103,6 @@ void HAL_DSI_MspInit(DSI_HandleTypeDef* hdsi)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   if(hdsi->Instance==DSI)
   {
-
     /* Peripheral clock enable */
     __HAL_RCC_DSI_CLK_ENABLE();
 
@@ -149,11 +116,7 @@ void HAL_DSI_MspInit(DSI_HandleTypeDef* hdsi)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF13_DSI;
     HAL_GPIO_Init(DSIHOST_TE_GPIO_Port, &GPIO_InitStruct);
-
-
-
   }
-
 }
 
 /**
@@ -166,7 +129,6 @@ void HAL_DSI_MspDeInit(DSI_HandleTypeDef* hdsi)
 {
   if(hdsi->Instance==DSI)
   {
-
     /* Peripheral clock disable */
     __HAL_RCC_DSI_CLK_DISABLE();
 
@@ -174,10 +136,7 @@ void HAL_DSI_MspDeInit(DSI_HandleTypeDef* hdsi)
     PJ2     ------> DSIHOST_TE
     */
     HAL_GPIO_DeInit(DSIHOST_TE_GPIO_Port, DSIHOST_TE_Pin);
-
-
   }
-
 }
 
 /**
@@ -207,10 +166,7 @@ void HAL_LTDC_MspInit(LTDC_HandleTypeDef* hltdc)
 
     /* Peripheral clock enable */
     __HAL_RCC_LTDC_CLK_ENABLE();
-
-
   }
-
 }
 
 /**
@@ -223,12 +179,9 @@ void HAL_LTDC_MspDeInit(LTDC_HandleTypeDef* hltdc)
 {
   if(hltdc->Instance==LTDC)
   {
-
     /* Peripheral clock disable */
     __HAL_RCC_LTDC_CLK_DISABLE();
-
   }
-
 }
 
 /**
@@ -243,8 +196,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
   if(huart->Instance==USART1)
   {
-
-
   /** Initializes the peripherals clock
   */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART1;
@@ -276,10 +227,10 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
     HAL_GPIO_Init(VCP_TX_GPIO_Port, &GPIO_InitStruct);
 
-
-
+    /* Console reception is interrupt driven; logging only, no RTOS calls. */
+    HAL_NVIC_SetPriority(USART1_IRQn, 6, 0);
+    HAL_NVIC_EnableIRQ(USART1_IRQn);
   }
-
 }
 
 /**
@@ -292,8 +243,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
 {
   if(huart->Instance==USART1)
   {
-
-    /* Peripheral clock disable */
+    HAL_NVIC_DisableIRQ(USART1_IRQn);
     __HAL_RCC_USART1_CLK_DISABLE();
 
     /**USART1 GPIO Configuration
@@ -301,16 +251,12 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     PA9     ------> USART1_TX
     */
     HAL_GPIO_DeInit(GPIOA, VCP_RX_Pin|VCP_TX_Pin);
-
-
   }
-
 }
 
 static uint32_t FMC_Initialized = 0;
 
 static void HAL_FMC_MspInit(void){
-
   GPIO_InitTypeDef GPIO_InitStruct ={0};
   if (FMC_Initialized) {
     return;
@@ -430,20 +376,15 @@ static void HAL_FMC_MspInit(void){
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF12_FMC;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
-
-
 }
 
 void HAL_SDRAM_MspInit(SDRAM_HandleTypeDef* hsdram){
-
   HAL_FMC_MspInit();
-
 }
 
 static uint32_t FMC_DeInitialized = 0;
 
 static void HAL_FMC_MspDeInit(void){
-
   if (FMC_DeInitialized) {
     return;
   }
@@ -531,14 +472,10 @@ static void HAL_FMC_MspDeInit(void){
   HAL_GPIO_DeInit(GPIOH, D23_Pin|D21_Pin|D22_Pin|FMC_SDNME_Pin
                           |FMC_SDNE0_Pin|FMC_SDCKE0_Pin|D20_Pin|FMC_D_7_Pin
                           |FMC_D19_Pin|FMC_D16_Pin|FMC_D18_Pin);
-
-
 }
 
 void HAL_SDRAM_MspDeInit(SDRAM_HandleTypeDef* hsdram){
-
   HAL_FMC_MspDeInit();
-
 }
 
 /**
@@ -553,8 +490,6 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
   if(hi2c->Instance==I2C1)
   {
-
-
   /** Initializes the peripherals clock
   */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C1;
@@ -578,12 +513,9 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
 
     /* Peripheral clock enable */
     __HAL_RCC_I2C1_CLK_ENABLE();
-
   }
   else if(hi2c->Instance==I2C4)
   {
-
-
   /** Initializes the peripherals clock
   */
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C4;
@@ -615,9 +547,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
 
     /* Peripheral clock enable */
     __HAL_RCC_I2C4_CLK_ENABLE();
-
   }
-
 }
 
 /**
@@ -630,7 +560,6 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
 {
   if(hi2c->Instance==I2C1)
   {
-
     /* Peripheral clock disable */
     __HAL_RCC_I2C1_CLK_DISABLE();
 
@@ -641,8 +570,5 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
     HAL_GPIO_DeInit(ARDUINO_SCL_D15_GPIO_Port, ARDUINO_SCL_D15_Pin);
 
     HAL_GPIO_DeInit(ARDUINO_SDA_D14_GPIO_Port, ARDUINO_SDA_D14_Pin);
-
-
   }
-
 }

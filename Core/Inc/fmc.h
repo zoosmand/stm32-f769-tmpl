@@ -27,7 +27,7 @@
 #define SDRAM_CMD_PALL                           UINT32_C(0x00000002)
 #define SDRAM_CMD_AUTOREFRESH_MODE               UINT32_C(0x00000003)
 #define SDRAM_CMD_LOAD_MODE                      UINT32_C(0x00000004)
-#define SDRAM_CMD_SELFREFRESH_MODE               UINT32_C(0x00000004)
+#define SDRAM_CMD_SELFREFRESH_MODE               UINT32_C(0x00000005)
 #define SDRAM_CMD_POWERDOWN_MODE                 UINT32_C(0x00000006)
 
 #define SDRAM_CMD_TARGET_BANK2                   FMC_SDCMR_CTB2

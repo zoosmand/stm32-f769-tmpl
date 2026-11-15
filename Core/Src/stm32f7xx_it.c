@@ -19,22 +19,11 @@
 #include "main.h"
 #include "stm32f7xx_it.h"
 
-
-
-
-
-
-
-
-
-
-
-
+extern UART_HandleTypeDef huart1;
 
 /* External variables --------------------------------------------------------*/
 
 extern EXTI_HandleTypeDef exti_line_touch;
-
 
 /******************************************************************************/
 /*           Cortex-M7 Processor Interruption and Exception Handlers          */
@@ -44,7 +33,6 @@ extern EXTI_HandleTypeDef exti_line_touch;
   */
 void NMI_Handler(void)
 {
-
    while (1)
   {
   }
@@ -55,7 +43,6 @@ void NMI_Handler(void)
   */
 void HardFault_Handler(void)
 {
-
   while (1)
   {
   }
@@ -66,7 +53,6 @@ void HardFault_Handler(void)
   */
 void MemManage_Handler(void)
 {
-
   while (1)
   {
   }
@@ -77,7 +63,6 @@ void MemManage_Handler(void)
   */
 void BusFault_Handler(void)
 {
-
   while (1)
   {
   }
@@ -88,7 +73,6 @@ void BusFault_Handler(void)
   */
 void UsageFault_Handler(void)
 {
-
   while (1)
   {
   }
@@ -99,8 +83,6 @@ void UsageFault_Handler(void)
   */
 void SVC_Handler(void)
 {
-
-
 }
 
 /**
@@ -108,8 +90,6 @@ void SVC_Handler(void)
   */
 void DebugMon_Handler(void)
 {
-
-
 }
 
 /**
@@ -117,8 +97,6 @@ void DebugMon_Handler(void)
   */
 void PendSV_Handler(void)
 {
-
-
 }
 
 /**
@@ -126,17 +104,13 @@ void PendSV_Handler(void)
   */
 void SysTick_Handler(void)
 {
-
   HAL_IncTick();
-
 }
-
 
 void LTDC_IRQHandler(void)
 {
     HAL_LTDC_IRQHandler(&hltdc);
 }
-
 
 /******************************************************************************/
 /* STM32F7xx Peripheral Interrupt Handlers                                    */
@@ -145,7 +119,13 @@ void LTDC_IRQHandler(void)
 /* please refer to the startup file (startup_stm32f7xx.s).                    */
 /******************************************************************************/
 
-
-void EXTI15_10_IRQHandler(void) {
+void EXTI15_10_IRQHandler(void)
+{
   HAL_EXTI_IRQHandler(&exti_line_touch);
+}
+
+/** USART1 (ST-LINK virtual COM port): console reception. */
+void USART1_IRQHandler(void)
+{
+  HAL_UART_IRQHandler(&huart1);
 }

@@ -7,13 +7,16 @@ The firmware separates startup, hardware drivers, and application work:
 ```text
 main.c       clock, MPU/cache, peripheral and board-device initialization
 app.c        application ownership and one non-blocking processing iteration
+console.c    USART1 command console (diagnostics), polled from the main loop
+self_test.c  power-on self-test and on-demand peripheral tests
 display.c    interactive display behavior
 drivers      OTM8009A, FT6206, SDRAM, Ethernet, and other hardware services
 ```
 
 `main()` owns the order-sensitive platform bring-up. After every required device
-is ready, it binds those devices to `App_Init()` and repeatedly calls
-`App_Process()`. Application code must not initialize clocks or peripheral
+is ready, it arms the console, runs the POST, binds the devices to `App_Init()`,
+and repeatedly calls `Console_Process()` and `App_Process()`. A failed
+`App_Init()` is reported and leaves the console running for diagnosis. Application code must not initialize clocks or peripheral
 handles.
 
 ## HAL and CMSIS policy
@@ -47,8 +50,9 @@ Before enabling the scheduler:
 1. Choose the HAL time base and ensure it remains valid after the scheduler
    starts.
 2. Reserve interrupt priorities that comply with
-   `configMAX_SYSCALL_INTERRUPT_PRIORITY`; the touch EXTI priority is currently
-   5 and must be checked against that configuration.
+   `configMAX_SYSCALL_INTERRUPT_PRIORITY`; the touch EXTI and LTDC priorities
+   are currently 5 and USART1 is 6, and must be checked against that
+   configuration.
 3. Convert interrupt-to-task state transfer to task notifications, queues, or
    event groups where appropriate. Interrupt-shared scalar flags must remain
    `volatile` but do not by themselves provide task synchronization.
@@ -68,6 +72,13 @@ publish state. Display rendering, I2C transactions, logging, and protocol
 processing stay in thread/main-loop context. Variables shared with interrupt
 context must be documented and use suitable synchronization for the access
 pattern.
+
+USART1 reception is interrupt driven: `HAL_UART_RxCpltCallback()` (producer)
+appends to a single-producer/single-consumer ring buffer that
+`Console_Process()` (consumer) drains in thread context. Console commands and
+tests run in the same thread as the display and therefore share I2C4, DMA2D,
+and SDRAM without locking; that ownership must be revisited under an RTOS.
+stdout is unbuffered and its UART writes are bounded to 100 ms per call.
 
 External SDRAM access functions accept byte offsets from `SDRAM_START_ADDR`,
 validate the complete range, and do not depend on DMA2D register state. Display
