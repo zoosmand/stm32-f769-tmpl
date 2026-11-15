@@ -69,4 +69,4 @@ machine-specific or secret-bearing files must remain untracked.
 
 ---
 
-Copyright © 2017-2026 Askug Ltd.
+Copyright © 2017-2026 Dmitry Slobodchikov

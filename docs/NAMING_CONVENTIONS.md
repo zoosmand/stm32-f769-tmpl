@@ -110,4 +110,4 @@ clean build and target-device regression test.
 
 ---
 
-Copyright © 2017-2026 Askug Ltd.
+Copyright © 2017-2026 Dmitry Slobodchikov

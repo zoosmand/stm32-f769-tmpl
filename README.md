@@ -53,10 +53,10 @@ make -j4
 The build creates these primary files under `build/`:
 
 ```text
-F769_eth_test_06.elf
-F769_eth_test_06.hex
-F769_eth_test_06.bin
-F769_eth_test_06.map
+F769NIH6_test_11.elf
+F769NIH6_test_11.hex
+F769NIH6_test_11.bin
+F769NIH6_test_11.map
 ```
 
 Remove generated output with:
@@ -112,4 +112,4 @@ Contributors should read:
 
 ---
 
-Copyright © 2017-2026 Askug Ltd.
+Copyright © 2017-2026 Dmitry Slobodchikov
