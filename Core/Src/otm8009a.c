@@ -13,10 +13,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "otm8009a.h"
 
-
-
-
-
 __IO uint8_t swap_pending = 0;
 __IO LTCDLayer_t curr_ltcd_layer = L1;
 
@@ -49,7 +45,6 @@ static const uint8_t lcdRegData22[] = { 0x00, 0x25, 0x0C, 0x0A, 0x02, 0x26, 0x00
 static const uint8_t lcdRegData23[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x25, 0x0b, 0x09, 0x01, 0xcc };
 static const uint8_t lcdRegData24[] = { 0x26, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xcc };
 static const uint8_t lcdRegData25[] = { 0xff, 0xff, 0xff, 0xff };
-
 
 static const uint8_t ShortRegData1[]  = { OTM8009A_CMD_NOP, 0x00 };
 static const uint8_t ShortRegData2[]  = { OTM8009A_CMD_NOP, 0x80 };
@@ -102,7 +97,6 @@ static const uint8_t ShortRegData49[] = { 0xf5, 0x06 };
 static const uint8_t ShortRegData50[] = { OTM8009A_CMD_NOP, 0xb1 };
 static const uint8_t ShortRegData51[] = { 0xc6, 0x06 };
 
-
 static LTDC_LayerCfgTypeDef layer1 = {
   .WindowX0         = L1_PADDING_LEFT,
   .WindowX1         = (L1_HEIGHT + L1_PADDING_RIGHT),
@@ -139,12 +133,7 @@ static LTDC_LayerCfgTypeDef layer2 = {
   .Backcolor.Red    = 0x00,
 };
 
-
-
-
-
 __STATIC_INLINE HAL_StatusTypeDef dsi_write(uint32_t, uint8_t*);
-
 
 /**
   * @brief  Fills rectangle on an LTDC layer of display with the given color.
@@ -158,14 +147,6 @@ __STATIC_INLINE HAL_StatusTypeDef dsi_write(uint32_t, uint8_t*);
   * @retval status of operation
   */
 HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
-
-
-
-
-
-
-
-
 
 /**
   * @brief  Send the sequence of initialization command and data to display.
@@ -196,12 +177,9 @@ Display_TypeDef* OTM8009A_Init(void) {
   if (dev->DSIDevHandler->Lock == HAL_LOCKED) return dev;
   if (dev->SDRAMDevHandler->Lock == HAL_LOCKED) return dev;
 
-
   /* Enable CMD2 to access vendor specific commands                               */
   /* Enter in command 2 mode and set EXTC to enable address shift function (0x00) */
-  // dsi_write(0, (uint8_t*){ OTM8009A_CMD_NOP, 0x00 });
   if (dsi_write(0, (uint8_t *)ShortRegData1) != HAL_OK) return dev;
-  // dsi_write( 3, (const uint8_t *){0x80, 0x09, 0x01, 0xff});
   if (dsi_write( 3, (uint8_t *)lcdRegData1) != HAL_OK) return dev;
 
   /* Enter ORISE Command 2 */
@@ -450,27 +428,21 @@ Display_TypeDef* OTM8009A_Init(void) {
   /* DSI host from LTDC incoming pixels in video mode */
   if (dsi_write(0, (uint8_t *)ShortRegData45) != HAL_OK) return dev;
 
-
   if (OTM8009A_DisplayOn(dev) != HAL_OK) return dev;
 
   /* TODO Implement PWM brightness */
   if (OTM8009A_SetBrightness(dev, 0xff) != HAL_OK) return dev;
 
-
   /* Configure layers */
   if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer1, 0) != HAL_OK) return dev;
   if (Display_FillLayer(dev, L1, dev->BgLayer1)) return dev;
 
-  /* TODO implement the usage of LTDC Layer 2 */
-  // if (HAL_LTDC_ConfigLayer(dev->LTDCDevHandler, dev->Layer2, 1) != HAL_OK) return dev;
-  // if (Display_FillLayer(dev, L2, dev->BgLayer2)) return dev;
+  /* LTDC layer 2 is reserved for a later overlay implementation. */
 
   dev->Lock = DISABLE;
 
   return dev;
 }
-
-
 
 // --------------------------------------------------------------------------
 
@@ -483,8 +455,6 @@ __STATIC_INLINE HAL_StatusTypeDef dsi_write(uint32_t cnt, uint8_t* buf) {
   return HAL_OK;
 }
 
-
-
 // --------------------------------------------------------------------------
 
 HAL_StatusTypeDef OTM8009A_DisplayOn(Display_TypeDef* dev) {
@@ -492,17 +462,12 @@ HAL_StatusTypeDef OTM8009A_DisplayOn(Display_TypeDef* dev) {
   return HAL_OK;
 }
 
-
-
 // --------------------------------------------------------------------------
 
 HAL_StatusTypeDef OTM8009A_SetBrightness(Display_TypeDef* dev, uint8_t val) {
   if (HAL_DSI_ShortWrite(dev->DSIDevHandler, 0, DSI_DCS_SHORT_PKT_WRITE_P1, OTM8009A_CMD_WRDISBV, val) != HAL_OK) return HAL_ERROR;
   return HAL_OK;
 }
-
-
-
 
 // --------------------------------------------------------------------------
 
@@ -518,33 +483,27 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillLayer(Display_TypeDef* dev, 
   return HAL_OK;
 }
 
-
-
-
 /**
   * @brief  Draws a pixel on a layer of display with color
   * @param  layer: number of layer
   * @param  x: x coordinate
-  * @param  y: y coordinate 
+  * @param  y: y coordinate
   * @param  color: color
   * @retval None
   */
 HAL_StatusTypeDef __attribute__((weak)) Display_DrawPixel(Display_TypeDef* dev, LTCDLayer_t layer, uint16_t x, uint16_t y, uint32_t color) {
   if (SDRAM_BusyStatusCheck(&hsdram1) != HAL_OK) return HAL_ERROR;
   LTDC_LayerCfgTypeDef* l = (layer == L1) ? dev->Layer1 : dev->Layer2;
-  __O uint32_t* fb = (uint32_t*)(GET_POSITIOIN_ADDRESS(l, x, y));
+  __O uint32_t* fb = (uint32_t*)(GET_POSITION_ADDRESS(l, x, y));
   *fb = color;
   return HAL_OK;
 }
-
-
-
 
 /**
   * @brief  Draws a vertical line on a layer of display with color
   * @param  layer: number of layer
   * @param  x: x coordinate
-  * @param  y: y coordinate 
+  * @param  y: y coordinate
   * @param  h: height of a line
   * @param  color: color
   * @retval None
@@ -554,15 +513,11 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawVLine(Display_TypeDef* dev, 
   return HAL_OK;
 }
 
-
-
-
-
 /**
   * @brief  Draws a horizontal line on a layer of display with color
   * @param  layer: number of layer
   * @param  x: x coordinate
-  * @param  y: y coordinate 
+  * @param  y: y coordinate
   * @param  w: weight of a line
   * @param  color: color
   * @retval None
@@ -572,13 +527,11 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawHLine(Display_TypeDef* dev, 
   return HAL_OK;
 }
 
-
-
 /**
-  * @brief  Draws a rectangle 
+  * @brief  Draws a rectangle
   * @param  layer: number of layer
   * @param  x: x coordinate
-  * @param  y: y coordinate 
+  * @param  y: y coordinate
   * @param  w: weight of a line
   * @param  color: color
   * @retval None
@@ -591,34 +544,33 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(Display_TypeDef* d
   return HAL_OK;
 }
 
-
-
-
-
 // --------------------------------------------------------------------------
 
 HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef* dev, LTCDLayer_t layer, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t color) {
-  
+
   LTDC_LayerCfgTypeDef* l = (layer == L1) ? dev->Layer1 : dev->Layer2;
   curr_ltcd_layer = layer;
 
-  if ((x + w - 1) >= l->ImageHeight) return HAL_ERROR;
-  if ((y + h - 1) >= l->ImageWidth) return HAL_ERROR;
+  if ((w == 0U) || (h == 0U)) return HAL_ERROR;
+  if (((uint32_t)x + w) > l->ImageHeight) return HAL_ERROR;
+  if (((uint32_t)y + h) > l->ImageWidth) return HAL_ERROR;
 
+  /* Register-level boundary: HAL exposes the DMA2D output offset only through
+     HAL_DMA2D_Init(), so the per-rectangle line offset and R2M mode are written
+     directly before the HAL transfer. The display owns hdma2d in thread
+     context; the framebuffer is non-cacheable (MPU), so no cache maintenance
+     is needed. */
   dev->DMADevHandler->Instance->OOR = l->ImageWidth - h;
-
   MODIFY_REG(dev->DMADevHandler->Instance->CR, DMA2D_CR_MODE, DMA2D_R2M);
 
-  if (HAL_DMA2D_Start(dev->DMADevHandler, color, GET_POSITIOIN_ADDRESS(l, x, y), h, w) != HAL_OK) return HAL_ERROR;
+  if (HAL_DMA2D_Start(dev->DMADevHandler, color, GET_POSITION_ADDRESS(l, x, y), h, w) != HAL_OK) return HAL_ERROR;
 
-  HAL_DMA2D_PollForTransfer(dev->DMADevHandler, HAL_MAX_DELAY);
+  if (HAL_DMA2D_PollForTransfer(dev->DMADevHandler, DISPLAY_DMA2D_TIMEOUT_MS) != HAL_OK) return HAL_ERROR;
 
   swap_pending = 1;
 
   return HAL_OK;
 }
-
-
 
 // --------------------------------------------------------------------------
 
@@ -650,9 +602,6 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(Display_TypeDef* dev,
   return HAL_OK;
 }
 
-
-
-
 // --------------------------------------------------------------------------
 
 HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(Display_TypeDef* dev, LTCDLayer_t layer, uint16_t x0, uint16_t y0, uint16_t r, uint32_t color) {
@@ -679,9 +628,6 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(Display_TypeDef* dev,
   return HAL_OK;
 }
 
-
-
-
 // --------------------------------------------------------------------------
 
 HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(Display_TypeDef* dev, LTCDLayer_t layer, uint16_t* x, uint16_t* y, const Font_TypeDef *f, uint8_t ch) {
@@ -695,23 +641,22 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(Display_TypeDef* dev,
   LTDC_LayerCfgTypeDef* l = (layer == L1) ? dev->Layer1 : dev->Layer2;
   curr_ltcd_layer = layer;
 
-  
+
   if ((*x + f->Width - 1) >= l->ImageHeight) return HAL_ERROR;
   if ((*y + f->Height - 1) >= l->ImageWidth) return HAL_ERROR;
 
-
   const uint8_t *glyph = f->Font + (ch * f->BytesPerGlif);
-  
+
   uint32_t pixel_count = 0;
-  
+
   for (uint32_t iw = 0; iw < f->Width ; iw++) {
-    
+
     if (SDRAM_BusyStatusCheck(dev->SDRAMDevHandler) != HAL_OK) return HAL_ERROR;
-    __O uint32_t* fb = (uint32_t*)(GET_POSITIOIN_ADDRESS(l, (*x + (iw * 1)), *y));
-    
+    __O uint32_t* fb = (uint32_t*)(GET_POSITION_ADDRESS(l, (*x + (iw * 1)), *y));
+
     for (uint16_t ih = 0; ih < f->Height; ih += 8) {
       uint8_t bits = glyph[pixel_count++];
-      
+
       for (uint8_t bit = 0; bit < 8; bit++) {
         *fb++ = (bits & 0x01) ? f->Color : f->Bgcolor;
         bits >>= 1;
@@ -719,42 +664,36 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(Display_TypeDef* dev,
     }
   }
   *x += f->Width;
-  
+
   return HAL_OK;
 }
-
-
-
-
 
 // --------------------------------------------------------------------------
 
 HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(Display_TypeDef* dev, LTCDLayer_t layer, uint16_t *x, uint16_t *y, const Font_TypeDef *f, const char *str, bool wrap) {
-  
-  uint16_t char_count = 0;
-  
-  while (str[char_count++] != '\n') {
-    if (char_count > 64) break;
+  if ((dev == NULL) || (x == NULL) || (y == NULL) ||
+      (f == NULL) || (str == NULL)) {
+    return HAL_ERROR;
   }
-  
-  char_count--;
-  
-  // while (!swap_pending) __WFI();
-  // swap_pending = 0;
+
+  (void)wrap;
+  uint16_t char_count = 0;
+  while ((char_count < 64U) && (str[char_count] != '\0') &&
+         (str[char_count] != '\n')) {
+    char_count++;
+  }
 
   LTDC_LayerCfgTypeDef* l = (layer == L1) ? dev->Layer1 : dev->Layer2;
   curr_ltcd_layer = layer;
-  
+
   SCB_CleanDCache_by_Addr((uint32_t*)l->FBStartAdress, l->ImageWidth * l->ImageHeight * 4);
-  
+
   for (uint16_t ic = 0; ic < char_count; ic++) {
     Display_DrawSymbol(dev, layer, x, y, f, str[ic]);
   }
-  
+
   return HAL_OK;
 }
-
-
 
 // --------------------------------------------------------------------------
 

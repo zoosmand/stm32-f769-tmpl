@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * File Name          : ethernetif.c
@@ -16,7 +15,6 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -31,12 +29,8 @@
 #include "lan8742.h"
 #include <string.h>
 
-/* Within 'USER CODE' section, code will be kept by default at each generation */
-/* USER CODE BEGIN 0 */
 
-/* USER CODE END 0 */
 
-/* Private define ------------------------------------------------------------*/
 
 /* Network interface name */
 #define IFNAME0 's'
@@ -46,11 +40,8 @@
 #define ETH_DMA_TRANSMIT_TIMEOUT               ( 20U )
 #define ETH_TX_BUFFER_MAX             ((ETH_TX_DESC_CNT) * 2U)
 
-/* USER CODE BEGIN 1 */
 
-/* USER CODE END 1 */
 
-/* Private variables ---------------------------------------------------------*/
 /*
 @Note: This interface is implemented to operate in zero-copy mode only:
         - Rx Buffers will be allocated from LwIP stack Rx memory pool,
@@ -116,15 +107,12 @@ ETH_DMADescTypeDef DMATxDscrTab[ETH_TX_DESC_CNT] __attribute__((section(".TxDecr
 
 #endif
 
-/* USER CODE BEGIN 2 */
 
-/* USER CODE END 2 */
 
 /* Global Ethernet handle */
 ETH_HandleTypeDef heth;
 ETH_TxPacketConfig TxConfig;
 
-/* Private function prototypes -----------------------------------------------*/
 int32_t ETH_PHY_IO_Init(void);
 int32_t ETH_PHY_IO_DeInit (void);
 int32_t ETH_PHY_IO_ReadReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t *pRegVal);
@@ -138,16 +126,12 @@ lan8742_IOCtx_t  LAN8742_IOCtx = {ETH_PHY_IO_Init,
                                   ETH_PHY_IO_ReadReg,
                                   ETH_PHY_IO_GetTick};
 
-/* USER CODE BEGIN 3 */
 
-/* USER CODE END 3 */
 
 /* Private functions ---------------------------------------------------------*/
 void pbuf_free_custom(struct pbuf *p);
 
-/* USER CODE BEGIN 4 */
 
-/* USER CODE END 4 */
 
 /*******************************************************************************
                        LL Driver Interface ( LwIP stack --> ETH)
@@ -178,9 +162,7 @@ static void low_level_init(struct netif *netif)
   heth.Init.RxDesc = DMARxDscrTab;
   heth.Init.RxBuffLen = 1536;
 
-  /* USER CODE BEGIN MACADDRESS */
 
-  /* USER CODE END MACADDRESS */
 
   hal_eth_init_status = HAL_ETH_Init(&heth);
 
@@ -218,9 +200,7 @@ static void low_level_init(struct netif *netif)
     netif->flags |= NETIF_FLAG_BROADCAST;
   #endif /* LWIP_ARP */
 
-/* USER CODE BEGIN PHY_PRE_CONFIG */
 
-/* USER CODE END PHY_PRE_CONFIG */
   /* Set PHY IO functions */
   LAN8742_RegisterBusIO(&LAN8742, &LAN8742_IOCtx);
 
@@ -243,9 +223,7 @@ static void low_level_init(struct netif *netif)
   }
 #endif /* LWIP_ARP || LWIP_ETHERNET */
 
-/* USER CODE BEGIN LOW_LEVEL_INIT */
 
-/* USER CODE END LOW_LEVEL_INIT */
 
 }
 
@@ -362,9 +340,7 @@ static err_t low_level_output_arp_off(struct netif *netif, struct pbuf *q, const
   err_t errval;
   errval = ERR_OK;
 
-/* USER CODE BEGIN 5 */
 
-/* USER CODE END 5 */
 
   return errval;
 
@@ -391,13 +367,6 @@ err_t ethernetif_init(struct netif *netif)
   /* Initialize interface hostname */
   netif->hostname = "lwip";
 #endif /* LWIP_NETIF_HOSTNAME */
-
-  /*
-   * Initialize the snmp variables and counters inside the struct netif.
-   * The last argument should be replaced with your link speed, in units
-   * of bits per second.
-   */
-  // MIB2_INIT_NETIF(netif, snmp_ifType_ethernet_csmacd, LINK_SPEED_OF_YOUR_NETIF_IN_BPS);
 
   netif->name[0] = IFNAME0;
   netif->name[1] = IFNAME1;
@@ -448,7 +417,6 @@ void pbuf_free_custom(struct pbuf *p)
   }
 }
 
-/* USER CODE BEGIN 6 */
 
 /**
 * @brief  Returns the current time in milliseconds
@@ -461,7 +429,6 @@ u32_t sys_now(void)
   return HAL_GetTick();
 }
 
-/* USER CODE END 6 */
 
 /**
   * @brief  Initializes the ETH MSP.
@@ -474,9 +441,7 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   if(ethHandle->Instance==ETH)
   {
-  /* USER CODE BEGIN ETH_MspInit 0 */
 
-  /* USER CODE END ETH_MspInit 0 */
     /* Enable Peripheral clock */
     __HAL_RCC_ETH_CLK_ENABLE();
 
@@ -515,9 +480,7 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /* USER CODE BEGIN ETH_MspInit 1 */
 
-  /* USER CODE END ETH_MspInit 1 */
   }
 }
 
@@ -525,9 +488,7 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
 {
   if(ethHandle->Instance==ETH)
   {
-  /* USER CODE BEGIN ETH_MspDeInit 0 */
 
-  /* USER CODE END ETH_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_ETH_CLK_DISABLE();
 
@@ -548,9 +509,7 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
 
     HAL_GPIO_DeInit(GPIOA, RMII_REF_CLK_Pin|RMII_MDIO_Pin|RMII_CRS_DV_Pin);
 
-  /* USER CODE BEGIN ETH_MspDeInit 1 */
 
-  /* USER CODE END ETH_MspDeInit 1 */
   }
 }
 
@@ -690,7 +649,6 @@ void ethernet_link_check_state(struct netif *netif)
 
 void HAL_ETH_RxAllocateCallback(uint8_t **buff)
 {
-/* USER CODE BEGIN HAL ETH RxAllocateCallback */
   struct pbuf_custom *p = LWIP_MEMPOOL_ALLOC(RX_POOL);
   if (p)
   {
@@ -707,12 +665,10 @@ void HAL_ETH_RxAllocateCallback(uint8_t **buff)
     RxAllocStatus = RX_ALLOC_ERROR;
     *buff = NULL;
   }
-/* USER CODE END HAL ETH RxAllocateCallback */
 }
 
 void HAL_ETH_RxLinkCallback(void **pStart, void **pEnd, uint8_t *buff, uint16_t Length)
 {
-/* USER CODE BEGIN HAL ETH RxLinkCallback */
 
   struct pbuf **ppStart = (struct pbuf **)pStart;
   struct pbuf **ppEnd = (struct pbuf **)pEnd;
@@ -747,19 +703,11 @@ void HAL_ETH_RxLinkCallback(void **pStart, void **pEnd, uint8_t *buff, uint16_t 
   /* Invalidate data cache because Rx DMA's writing to physical memory makes it stale. */
   SCB_InvalidateDCache_by_Addr((uint32_t *)buff, Length);
 
-/* USER CODE END HAL ETH RxLinkCallback */
 }
 
 void HAL_ETH_TxFreeCallback(uint32_t * buff)
 {
-/* USER CODE BEGIN HAL ETH TxFreeCallback */
 
   pbuf_free((struct pbuf *)buff);
 
-/* USER CODE END HAL ETH TxFreeCallback */
 }
-
-/* USER CODE BEGIN 8 */
-
-/* USER CODE END 8 */
-

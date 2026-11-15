@@ -20,7 +20,8 @@ The current `dev` firmware configures:
 - the 800 x 480 OTM8009A LCD through DSI Host and LTDC;
 - DMA2D-backed drawing, double framebuffers, and bitmap fonts;
 - the FT6206 capacitive touchscreen over I2C;
-- USART1 and ITM/SWO output for `printf`;
+- USART1 and ITM/SWO output for `printf`, plus a USART1 command console;
+- a power-on self-test and on-demand peripheral tests;
 - CRC and board GPIO;
 - a bare-metal lwIP/Ethernet implementation with LAN8742 and DHCP code.
 
@@ -74,8 +75,40 @@ framebuffers.
 
 After reset, the firmware initializes the clock tree and core memory
 attributes, starts SDRAM and the display pipeline, initializes the touch
-controller, and enters the interactive display loop. Diagnostic output is sent
-to both USART1 and ITM stimulus port 0.
+controller, runs the power-on self-test, and enters the interactive display
+loop. Diagnostic output is sent to both USART1 and ITM stimulus port 0 (SWO,
+1.8 MHz NRZ); the firmware configures the TPIU itself, so no debugger is
+required.
+
+## Diagnostic console and peripheral tests
+
+USART1 is connected to the ST-LINK virtual COM port (115200 8N1). After the
+POST report the firmware prints an `f769>` prompt and accepts:
+
+```text
+help                      list commands
+list                      list peripheral tests
+test <name|post|all>      run one test, the POST suite, or every test
+led <1|2> <on|off|toggle> drive a user LED
+bright <0-255>            OTM8009A display brightness (DCS)
+info                      clocks, uptime, device state
+reset                     system reset
+```
+
+The POST runs `core`, `clock`, `usart`, `crc`, `i2c1`, `i2c4`, `touch`,
+`codec`, `sdram`, `dma2d`, `ltdc`, `dsi`, and `gpio`; none alter the display or
+framebuffers. The intrusive tests `sdramfull` (8 MiB data/address-bus and
+pattern test of the unused upper SDRAM half) and `display` (color bars with
+framebuffer readback) run only on request. Each check prints `ok`/`FAIL` with a
+measured value, and each test ends with `[PASS]` or `[FAIL]` and a summary.
+
+Example session on macOS:
+
+```sh
+make -j4
+st-flash --reset write build/F769NIH6_test_11.bin 0x08000000
+screen /dev/cu.usbmodem* 115200
+```
 
 ## Repository layout
 
@@ -102,6 +135,7 @@ enabled.
 
 Contributors should read:
 
+- [Firmware architecture](docs/ARCHITECTURE.md)
 - [Development rules](docs/DEVELOPMENT_RULES.md)
 - [Naming conventions](docs/NAMING_CONVENTIONS.md)
 - [Supplying ignored source trees](docs/IGNORED_SOURCES.md)

@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.c
@@ -15,57 +14,40 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "app.h"
+#include "console.h"
+#include "fmc.h"
+#include "ft6206.h"
 #include "lwip.h"
+#include "otm8009a.h"
+#include "self_test.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+#include <stdio.h>
 
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
+/** SWO bit rate; matches the cortex-debug swoFrequency in launch.json. */
+#define ITM_SWO_FREQUENCY_HZ      1800000U
+/** Upper bound on polling one ITM stimulus port before a character is dropped. */
+#define ITM_PORT_READY_SPINS      10000U
+/** Bounded UART transmit time per printf() chunk. */
+#define STDOUT_UART_TIMEOUT_MS    100U
+/** Bounded wait for one FMC SDRAM command to be accepted. */
+#define SDRAM_COMMAND_TIMEOUT_MS  100U
+/** SDRAM refresh counter value programmed into FMC_SDRTR. */
+#define SDRAM_REFRESH_COUNT       1539U
 
 CRC_HandleTypeDef hcrc;
-
 DMA2D_HandleTypeDef hdma2d;
-
 DSI_HandleTypeDef hdsi;
-
 I2C_HandleTypeDef hi2c1;
-I2C_HandleTypeDef hi2c4;          
-
+I2C_HandleTypeDef hi2c4;
 LTDC_HandleTypeDef hltdc;
-
 UART_HandleTypeDef huart1;
-
 SDRAM_HandleTypeDef hsdram1;
 
-/* USER CODE BEGIN PV */
-static void ITM_Init(void);
-
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MPU_Config(void);
+static void ITM_Init(void);
 static void MX_GPIO_Init(void);
 static void MX_CRC_Init(void);
 static void MX_USART1_UART_Init(void);
@@ -75,145 +57,151 @@ static void MX_LTDC_Init(void);
 static void MX_FMC_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C4_Init(void);
-/* USER CODE BEGIN PFP */
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-
-
-
 
 /**
-  * @brief  The ITM initialization.
-  * @retval none
+  * @brief Enable ITM stimulus port 0 and route it to the SWO pin (PB3).
+  * @note  The TPIU is configured here (asynchronous NRZ, formatter bypassed) so
+  *        the ITM FIFO drains at ITM_SWO_FREQUENCY_HZ whether or not a trace
+  *        probe is capturing. Without it, ITM_SendChar() never sees a free
+  *        stimulus port and blocks forever unless a debugger set up the TPIU.
+  *        Must run after SystemClock_Config() because the prescaler depends on
+  *        SystemCoreClock.
   */
 static void ITM_Init(void)
 {
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DBGMCU->CR |= DBGMCU_CR_TRACE_IOEN;
 
-  ITM->LAR = 0xC5ACCE55;   // Unlock ITM
-  ITM->TCR = ITM_TCR_ITMENA_Msk |
+  TPI->CSPSR = 1U;                                   /* 1-bit trace port. */
+  TPI->SPPR = 2U;                                    /* Asynchronous NRZ. */
+  TPI->ACPR = (SystemCoreClock / ITM_SWO_FREQUENCY_HZ) - 1U;
+  TPI->FFCR = 0x100U;                                /* Formatter bypassed. */
+
+  ITM->LAR = 0xC5ACCE55U;                            /* Unlock ITM. */
+  ITM->TCR = (1U << ITM_TCR_TraceBusID_Pos) |
+             ITM_TCR_ITMENA_Msk |
              ITM_TCR_SYNCENA_Msk |
              ITM_TCR_TSENA_Msk |
              ITM_TCR_SWOENA_Msk;
-
-  ITM->TER = 0x1;          // Enable stimulus port 0
+  ITM->TPR = 0U;
+  ITM->TER = 0x1U;                                   /* Stimulus port 0. */
 }
 
+/** Write one character to ITM port 0, dropping it if the port stays busy. */
+static void itm_WriteChar(char ch)
+{
+  if (((ITM->TCR & ITM_TCR_ITMENA_Msk) == 0U) || ((ITM->TER & 1U) == 0U))
+  {
+    return;
+  }
 
-
+  for (uint32_t spins = 0U; spins < ITM_PORT_READY_SPINS; spins++)
+  {
+    if (ITM->PORT[0U].u32 != 0U)
+    {
+      ITM->PORT[0U].u8 = (uint8_t)ch;
+      return;
+    }
+  }
+}
 
 /**
-  * @brief  System write function.
-  * @retval length of the buffer to be output
+  * @brief newlib stdout/stderr hook: mirror output to ITM port 0 and USART1.
+  * @note  Blocking for at most STDOUT_UART_TIMEOUT_MS per call. Thread context
+  *        only; not reentrant with respect to interrupt handlers.
   */
 int _write(int file, char *ptr, int len)
 {
   (void)file;
+  if ((ptr == NULL) || (len <= 0))
+  {
+    return 0;
+  }
+
   for (int i = 0; i < len; i++)
   {
-    ITM_SendChar(ptr[i]);
+    itm_WriteChar(ptr[i]);
   }
-  HAL_UART_Transmit(&huart1, (uint8_t *)ptr, len, HAL_MAX_DELAY);
+
+  int sent = 0;
+  while (sent < len)
+  {
+    const uint16_t chunk = (uint16_t)(((len - sent) > UINT16_MAX) ?
+                                      UINT16_MAX : (len - sent));
+    (void)HAL_UART_Transmit(&huart1, (uint8_t *)&ptr[sent], chunk,
+                            STDOUT_UART_TIMEOUT_MS);
+    sent += chunk;
+  }
   return len;
 }
 
-
-
-
-// GPIO
-// FMC + SDRAM init
-// MPU framebuffer region
-// Enable caches
-// LTDC init (clocked, disabled)
-// DSI init (PLL + host)
-// OTM8009A_Init() (DSI command mode!)
-// DSI video mode config
-// HAL_DSI_Start()
-// Configure LTDC layers
-// Reload + enable LTDC
-
-
-
-/* USER CODE END 0 */
-
 /**
-  * @brief  The application entry point.
-  * @retval int
+  * @brief Firmware entry point: order-sensitive platform bring-up, then the
+  *        bare-metal processing loop.
   */
 int main(void)
 {
-
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CRC_Init();
   MX_USART1_UART_Init();
+  /* Unbuffered stdout: every printf() reaches USART1/ITM immediately. */
+  (void)setvbuf(stdout, NULL, _IONBF, 0);
   MX_I2C1_Init();
   MX_I2C4_Init();
-
   ITM_Init();
-  
+
   MX_DMA2D_Init();
   MX_FMC_Init();
 
   SCB_EnableICache();
   SCB_EnableDCache();
-  
+
   MX_DSIHOST_DSI_Init();
-  
   MX_LTDC_Init();
-  
   HAL_DSI_Start(&hdsi);
-  
-  // MX_LWIP_Init();
 
+  Display_TypeDef *display = OTM8009A_Init();
+  TouchScreen_TypeDef *touch = FT6206_Init();
 
+  /* Static lifetime: the console keeps this context for on-demand tests. */
+  static SelfTest_Context_TypeDef selfTestContext = {
+    .Crc = &hcrc,
+    .Dma2d = &hdma2d,
+    .Dsi = &hdsi,
+    .I2c1 = &hi2c1,
+    .I2c4 = &hi2c4,
+    .Ltdc = &hltdc,
+    .Uart = &huart1,
+    .Sdram = &hsdram1,
+  };
+  selfTestContext.Display = display;
+  selfTestContext.Touch = touch;
 
-  Display_TypeDef* display_0 = OTM8009A_Init();
-  if (display_0->Lock == ENABLE) Error_Handler();
+  if (Console_Init(&huart1, &selfTestContext) != HAL_OK)
+  {
+    printf("Console_Init failed: USART1 reception unavailable\r\n");
+  }
 
-  TouchScreen_TypeDef* touch_0 = FT6206_Init();
-  if ((touch_0->State == TOUCH_LOCKED) | (touch_0->State == TOUCH_DISABLED)) Error_Handler();
+  /* POST runs before App_Init() so a device failure is reported, not hidden. */
+  (void)SelfTest_Run(&selfTestContext);
 
-  /* USER CODE END 2 */
+  if (App_Init(display, touch) != HAL_OK)
+  {
+    /* Keep the diagnostic console alive; App_Process() stays idle. */
+    printf("App_Init failed: display or touchscreen not ready\r\n");
+  }
+  Console_PrintPrompt();
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
-
-    Display_Run(display_0, touch_0);
-    // MX_LWIP_Process();
-    /* USER CODE BEGIN 3 */
+    Console_Process();
+    App_Process();
   }
-  /* USER CODE END 3 */
 }
-
-
-
 
 /**
   * @brief System Clock Configuration
@@ -273,7 +261,6 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_HSI, RCC_MCODIV_1);
-
 }
 
 /**
@@ -283,14 +270,6 @@ void SystemClock_Config(void)
   */
 static void MX_CRC_Init(void)
 {
-
-  /* USER CODE BEGIN CRC_Init 0 */
-
-  /* USER CODE END CRC_Init 0 */
-
-  /* USER CODE BEGIN CRC_Init 1 */
-
-  /* USER CODE END CRC_Init 1 */
   hcrc.Instance = CRC;
   hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
   hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
@@ -301,10 +280,6 @@ static void MX_CRC_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN CRC_Init 2 */
-
-  /* USER CODE END CRC_Init 2 */
-
 }
 
 /**
@@ -314,14 +289,6 @@ static void MX_CRC_Init(void)
   */
 static void MX_DMA2D_Init(void)
 {
-
-  /* USER CODE BEGIN DMA2D_Init 0 */
-
-  /* USER CODE END DMA2D_Init 0 */
-
-  /* USER CODE BEGIN DMA2D_Init 1 */
-
-  /* USER CODE END DMA2D_Init 1 */
   hdma2d.Instance = DMA2D;
   hdma2d.Init.Mode = DMA2D_R2M;
   hdma2d.Init.ColorMode = DMA2D_OUTPUT_ARGB8888;
@@ -344,20 +311,7 @@ static void MX_DMA2D_Init(void)
   if (HAL_DMA2D_Init(&hdma2d) != HAL_OK) Error_Handler();
   if (HAL_DMA2D_ConfigLayer(&hdma2d, 0) != HAL_OK) Error_Handler();
   if (HAL_DMA2D_ConfigLayer(&hdma2d, 1) != HAL_OK) Error_Handler();
-
-  /* USER CODE BEGIN DMA2D_Init 2 */
-  
-  hdma2d.Instance->OMAR = SDRAM_START_ADDR;
-  hdma2d.Instance->OCOLR = 0xff000000;
-
-  #ifdef _LANDSCAPE_
-    MODIFY_REG(hdma2d.Instance->NLR, (DMA2D_NLR_NL_Msk | DMA2D_NLR_PL_Msk), ((DISPLAY_HEIGHT << DMA2D_NLR_NL_Pos) | (DISPLAY_WIDTH << DMA2D_NLR_PL_Pos)));
-  #else
-    MODIFY_REG(hdma2d.Instance->NLR, (DMA2D_NLR_NL_Msk | DMA2D_NLR_PL_Msk), ((DISPLAY_WIDTH << DMA2D_NLR_NL_Pos) | (DISPLAY_HEIGHT << DMA2D_NLR_PL_Pos)));
-  #endif
-
-  /* USER CODE END DMA2D_Init 2 */
-
+  /* Output address, color and size are programmed by each HAL_DMA2D_Start(). */
 }
 
 /**
@@ -367,23 +321,14 @@ static void MX_DMA2D_Init(void)
   */
 static void MX_DSIHOST_DSI_Init(void)
 {
-
-  /* USER CODE BEGIN DSIHOST_Init 0 */
   /* Reset */
-  PIN_L(DSI_RESET_Port, DSI_RESET_Pin);
+  HAL_GPIO_WritePin(DSI_RESET_Port, DSI_RESET_Pin, GPIO_PIN_RESET);
   HAL_Delay(10);
-  PIN_H(DSI_RESET_Port, DSI_RESET_Pin);
-
-  /* USER CODE END DSIHOST_Init 0 */
-
-
+  HAL_GPIO_WritePin(DSI_RESET_Port, DSI_RESET_Pin, GPIO_PIN_SET);
 
   DSI_PLLInitTypeDef PLLInit = {0};
   DSI_VidCfgTypeDef VidCfg = {0};
 
-  /* USER CODE BEGIN DSIHOST_Init 1 */
-
-  /* USER CODE END DSIHOST_Init 1 */
   hdsi.Instance = DSI;
   hdsi.Init.AutomaticClockLaneControl = DSI_AUTO_CLK_LANE_CTRL_DISABLE;
   hdsi.Init.TXEscapeCkdiv = 4;
@@ -396,7 +341,6 @@ static void MX_DSIHOST_DSI_Init(void)
   {
     Error_Handler();
   }
-
 
   VidCfg.VirtualChannelID = 0;
   VidCfg.ColorCoding = DSI_RGB888;
@@ -429,12 +373,6 @@ static void MX_DSIHOST_DSI_Init(void)
   {
     Error_Handler();
   }
-
-
-  /* USER CODE BEGIN DSIHOST_Init 2 */
-
-  /* USER CODE END DSIHOST_Init 2 */
-
 }
 
 /**
@@ -444,14 +382,6 @@ static void MX_DSIHOST_DSI_Init(void)
   */
 static void MX_LTDC_Init(void)
 {
-
-  /* USER CODE BEGIN LTDC_Init 0 */
-
-  /* USER CODE END LTDC_Init 0 */
-
-  /* USER CODE BEGIN LTDC_Init 1 */
-
-  /* USER CODE END LTDC_Init 1 */
   hltdc.Instance = LTDC;
   hltdc.Init.HSPolarity = LTDC_HSPOLARITY_AH;
   hltdc.Init.VSPolarity = LTDC_VSPOLARITY_AH;
@@ -478,14 +408,12 @@ static void MX_LTDC_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN LTDC_Init 2 */
-  hltdc.Instance->IER |= LTDC_IER_LIE;
-  hltdc.Instance->LIPCR = 0;
   HAL_NVIC_SetPriority(LTDC_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(LTDC_IRQn);
-
-  /* USER CODE END LTDC_Init 2 */
-
+  if (HAL_LTDC_ProgramLineEvent(&hltdc, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /**
@@ -495,20 +423,12 @@ static void MX_LTDC_Init(void)
   */
 static void MX_USART1_UART_Init(void)
 {
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
   huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX;
+  huart1.Init.Mode = UART_MODE_TX_RX;
   huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart1.Init.OverSampling = UART_OVERSAMPLING_16;
   huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
@@ -517,29 +437,12 @@ static void MX_USART1_UART_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
 }
-
-
-
-
-
 
 /* FMC initialization function */
 static void MX_FMC_Init(void)
 {
-
-  /* USER CODE BEGIN FMC_Init 0 */
-
-  /* USER CODE END FMC_Init 0 */
-
   FMC_SDRAM_TimingTypeDef SdramTiming = {0};
-
-  /* USER CODE BEGIN FMC_Init 1 */
-  /* USER CODE END FMC_Init 1 */
 
   /** Perform the SDRAM1 memory initialization sequence
   */
@@ -556,7 +459,6 @@ static void MX_FMC_Init(void)
   hsdram1.Init.ReadBurst            = FMC_SDRAM_RBURST_ENABLE;
   hsdram1.Init.ReadPipeDelay        = FMC_SDRAM_RPIPE_DELAY_0;
 
-
   SdramTiming.LoadToActiveDelay     = 1;  // tMRD
   SdramTiming.ExitSelfRefreshDelay  = 6;  // tXSR
   SdramTiming.SelfRefreshTime       = 3;  // tRAS
@@ -567,24 +469,23 @@ static void MX_FMC_Init(void)
 
   if (HAL_SDRAM_Init(&hsdram1, &SdramTiming) != HAL_OK) Error_Handler();
 
-
-
-  /* USER CODE BEGIN FMC_Init 2 */
-
   FMC_SDRAM_CommandTypeDef SdramCommand   = {0};
 
   SdramCommand.CommandMode                = SDRAM_CMD_CLK_ENABLE;
   SdramCommand.CommandTarget              = SDRAM_CMD_TARGET_BANK1;
   SdramCommand.AutoRefreshNumber          = 1;
   SdramCommand.ModeRegisterDefinition     = 0;
-  if (HAL_SDRAM_SendCommand(&hsdram1, &SdramCommand, HAL_MAX_DELAY) != HAL_OK) Error_Handler();
+  if (HAL_SDRAM_SendCommand(&hsdram1, &SdramCommand, SDRAM_COMMAND_TIMEOUT_MS) != HAL_OK) Error_Handler();
+
+  /* JEDEC power-up: keep the clock stable for at least 100 us before PALL. */
+  HAL_Delay(1);
 
   SdramCommand.CommandMode                = SDRAM_CMD_PALL;
-  if (HAL_SDRAM_SendCommand(&hsdram1, &SdramCommand, HAL_MAX_DELAY) != HAL_OK) Error_Handler();
+  if (HAL_SDRAM_SendCommand(&hsdram1, &SdramCommand, SDRAM_COMMAND_TIMEOUT_MS) != HAL_OK) Error_Handler();
 
   SdramCommand.CommandMode                = SDRAM_CMD_AUTOREFRESH_MODE;
   SdramCommand.AutoRefreshNumber          = 8;
-  if (HAL_SDRAM_SendCommand(&hsdram1, &SdramCommand, HAL_MAX_DELAY) != HAL_OK) Error_Handler();
+  if (HAL_SDRAM_SendCommand(&hsdram1, &SdramCommand, SDRAM_COMMAND_TIMEOUT_MS) != HAL_OK) Error_Handler();
 
   SdramCommand.CommandMode                = SDRAM_CMD_LOAD_MODE;
   SdramCommand.AutoRefreshNumber          = 1;
@@ -595,13 +496,10 @@ static void MX_FMC_Init(void)
     | SDRAM_MODEREG_OPERATING_MODE_STANDARD
     | SDRAM_MODEREG_WRITEBURST_MODE_SINGLE
   );
-  if (HAL_SDRAM_SendCommand(&hsdram1, &SdramCommand, HAL_MAX_DELAY) != HAL_OK) Error_Handler();
+  if (HAL_SDRAM_SendCommand(&hsdram1, &SdramCommand, SDRAM_COMMAND_TIMEOUT_MS) != HAL_OK) Error_Handler();
 
-  FMC_Bank5_6->SDRTR |= (__IO uint32_t)(1539 << FMC_SDRTR_COUNT_Pos);
+  if (HAL_SDRAM_ProgramRefreshRate(&hsdram1, SDRAM_REFRESH_COUNT) != HAL_OK) Error_Handler();
 }
-
-
-
 
 /**
   * @brief GPIO Initialization Function
@@ -611,9 +509,6 @@ static void MX_FMC_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-
-  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOE_CLK_ENABLE();
@@ -845,12 +740,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF0_MCO;
   HAL_GPIO_Init(CEC_CLK_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LCD_INT_Pin */
-  // GPIO_InitStruct.Pin = LCD_INT_Pin;
-  // GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  // GPIO_InitStruct.Pull = GPIO_NOPULL;
-  // HAL_GPIO_Init(LCD_INT_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : ARD_D5_PWM_Pin */
   GPIO_InitStruct.Pin = ARD_D5_PWM_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -1005,12 +894,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DSI_RESET_GPIO_Port, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-
-  /* USER CODE END MX_GPIO_Init_2 */
 }
-
 
 /**
   * @brief I2C1 Initialization Function
@@ -1019,14 +903,6 @@ static void MX_GPIO_Init(void)
   */
 static void MX_I2C1_Init(void)
 {
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x20404768;
   hi2c1.Init.OwnAddress1 = 0;
@@ -1054,12 +930,7 @@ static void MX_I2C1_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
-
 }
-
 
 /**
   * @brief I2C4 Initialization Function
@@ -1068,14 +939,6 @@ static void MX_I2C1_Init(void)
   */
 static void MX_I2C4_Init(void)
 {
-
-  /* USER CODE BEGIN I2C4_Init 0 */
-
-  /* USER CODE END I2C4_Init 0 */
-
-  /* USER CODE BEGIN I2C4_Init 1 */
-
-  /* USER CODE END I2C4_Init 1 */
   hi2c4.Instance = I2C4;
   hi2c4.Init.Timing = 0x20404768;
   hi2c4.Init.OwnAddress1 = 0;
@@ -1103,22 +966,10 @@ static void MX_I2C4_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN I2C4_Init 2 */
-
-  /* USER CODE END I2C4_Init 2 */
-
 }
 
-
-
-
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
-
- /* MPU Configuration */
-
-void MPU_Config(void)
+/** Configure non-cacheable MPU regions for Ethernet DMA memory and SDRAM. */
+static void MPU_Config(void)
 {
   MPU_Region_InitTypeDef MPU_InitStructETH = {0};
   MPU_Region_InitTypeDef MPU_InitStructDMA = {0};
@@ -1142,7 +993,7 @@ void MPU_Config(void)
 
   HAL_MPU_ConfigRegion(&MPU_InitStructETH);
 
-  /* Framebuffer SDRAM region: 0xC0000000, 8MB */
+  /* External SDRAM: 0xC0000000, 16 MiB, non-cacheable for LTDC/DMA2D. */
   MPU_InitStructDMA.Enable           = MPU_REGION_ENABLE;
   MPU_InitStructDMA.Number           = MPU_REGION_NUMBER1;   // keep REGION0 for ETH
   MPU_InitStructDMA.BaseAddress      = SDRAM_START_ADDR;
@@ -1159,10 +1010,8 @@ void MPU_Config(void)
 
   HAL_MPU_ConfigRegion(&MPU_InitStructDMA);
 
-
   /* Enables the MPU */
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
-
 }
 
 /**
@@ -1171,13 +1020,11 @@ void MPU_Config(void)
   */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+  HAL_GPIO_WritePin(LD_USER1_GPIO_Port, LD_USER1_Pin, GPIO_PIN_SET);
   while (1)
   {
   }
-  /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
 /**
@@ -1189,9 +1036,7 @@ void Error_Handler(void)
   */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-  /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

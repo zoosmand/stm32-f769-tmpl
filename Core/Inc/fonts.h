@@ -22,13 +22,15 @@
 #define __FONTS_H_
 
 
-#include "main.h"
+#include <stdint.h>
 
+/** Packed column-major glyph storage for each supported bitmap-font size. */
 typedef uint8_t font_dot_5x7_t[6];
 typedef uint8_t font_dot_10x14_t[24];
 typedef uint8_t font_dot_15x21_t[54];
 typedef uint8_t font_dot_20x28_t[96];
 
+/** Printable ASCII glyph tables, indexed by character code minus 32. */
 extern const font_dot_5x7_t font_dot_5x7[96];
 extern const font_dot_10x14_t font_dot_10x14[96];
 extern const font_dot_15x21_t font_dot_15x21[96];

@@ -13,21 +13,17 @@
 #ifndef __OTM8009A_H
 #define __OTM8009A_H
 
-
 #ifdef __cplusplus
  extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
-
+#include "common.h"
+#include "fmc.h"
 
 /* Private macro -------------------------------------------------------------*/
 
-
-
 /* Private defines -----------------------------------------------------------*/
-
 
 /* Display defines -----------------------------------------------------------*/
 
@@ -50,9 +46,8 @@
   #define ORIENTATION                 1
 #endif
 
-
 /* All padding in portrait mode should be zero */
-#ifdef _PORTRAIT_ 
+#ifdef _PORTRAIT_
   #define L1_PADDING_LEFT             (uint8_t)0
   #define L1_PADDING_RIGHT            (uint8_t)0
   #define L1_PADDING_TOP              (uint8_t)0
@@ -86,9 +81,6 @@
 #define L2_FRONT_ADDR                SDRAM_START_ADDR + BUF_SIZE * 2
 #define L2_BACK_ADDR                 SDRAM_START_ADDR + BUF_SIZE * 3
 
-
-
-
 /**
  *  @brief  Possible values of
  *  pixel data format (ie color coding) transmitted on DSI Data lane in DSI packets
@@ -116,7 +108,7 @@
  #define  OTM8009A_800X480_VSYNC             OTM8009A_480X800_HSYNC  /* Vertical synchronization   */
  #define  OTM8009A_800X480_VBP               OTM8009A_480X800_HBP    /* Vertical back porch        */
  #define  OTM8009A_800X480_VFP               OTM8009A_480X800_HFP    /* Vertical front porch       */
- 
+
  /* The following values are same for portrait and landscape orientations */
  #ifdef _LANDSCAPE_
   #define _VSA_         OTM8009A_480X800_VSYNC
@@ -126,17 +118,15 @@
   #define _HBP_         OTM8009A_480X800_HBP
   #define _HFP_         OTM8009A_480X800_HFP
 #endif
- 
+
  #ifdef _PORTRAIT_
-  #define _VSA_         OTM8009A_800X480_VSYNC 
+  #define _VSA_         OTM8009A_800X480_VSYNC
   #define _VBP_         OTM8009A_800X480_VBP
   #define _VFP_         OTM8009A_800X480_VFP
   #define _HSA_         OTM8009A_800X480_HSYNC
   #define _HBP_         OTM8009A_800X480_HBP
   #define _HFP_         OTM8009A_800X480_HFP
 #endif
- 
-
 
 
 /* List of OTM8009A used commands                                  */
@@ -201,7 +191,6 @@
   */
 #define OTM8009A_480X800_FREQUENCY_DIVIDER  2   /* LCD Frequency divider      */
 
-
 #define RGB565_Red                  (uint16_t)0xf800
 #define RGB565_Green                (uint16_t)0x07e0
 #define RGB565_Blue                 (uint16_t)0x001f
@@ -226,37 +215,30 @@
 #define ARGB8888_Apple              (uint32_t)0x0099ee2f
 #define ARGB8888_Darkgreen          (uint32_t)0x00003f00
 
-
 /* Exported macro ------------------------------------------------------------*/
 extern DSI_HandleTypeDef hdsi;
 extern SDRAM_HandleTypeDef hsdram1;
 extern DMA2D_HandleTypeDef hdma2d;
 extern LTDC_HandleTypeDef hltdc;
 
-
-
-
-
 /* Private defines -----------------------------------------------------------*/
 
-
 /* Exported macro ------------------------------------------------------------*/
-#define GET_POSITIOIN_ADDRESS(layer, x, y)  (layer->FBStartAdress + ((x * layer->ImageWidth) + y) * 4)
+/** Byte address of logical pixel (x, y) in a rotated ARGB8888 layer. */
+#define GET_POSITION_ADDRESS(layer, x, y) \
+  ((layer)->FBStartAdress + ((((uint32_t)(x) * (layer)->ImageWidth) + (uint32_t)(y)) * 4U))
 
+/** Upper bound for one blocking DMA2D framebuffer fill. */
+#define DISPLAY_DMA2D_TIMEOUT_MS          100U
 
 /* DSI related */
 #define LCD_CLOCK                         (uint16_t)27429 // 27429 kHz
 #define LANE_BYTE_CLOCK                   (uint16_t)62500 // 500 MHz / 8 = 62.5 MHz = 62500 kHz
 
-
-
 /* Exported functions prototypes ---------------------------------------------*/
 Display_TypeDef* OTM8009A_Init(void);
 HAL_StatusTypeDef OTM8009A_DisplayOn(Display_TypeDef*);
 HAL_StatusTypeDef OTM8009A_SetBrightness(Display_TypeDef*, uint8_t);
-
-
-
 
 HAL_StatusTypeDef __attribute__((weak)) Display_FillLayer(Display_TypeDef*, LTCDLayer_t, uint32_t);
 
@@ -274,7 +256,7 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(Display_TypeDef*, 
   * @brief  Draws a symbol on a layer of the display
   * @param  layer: pointer to the given layer structure
   * @param  x: pointer to x coordinate
-  * @param  y: pointer to y coordinate 
+  * @param  y: pointer to y coordinate
   * @param  f: pointer to the given font structure
   * @param  ch: the target sysmbol to draw
   * @retval None
@@ -285,10 +267,10 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(Display_TypeDef*, LTC
   * @brief  Draws a string on a layer of the display
   * @param  layer: pointer to the given layer structure
   * @param  x: pointer to x coordinate
-  * @param  y: pointer to y coordinate 
+  * @param  y: pointer to y coordinate
   * @param  f: pointer to the given font structure
   * @param  str: pointer to the string buffer
-  * @param  wrap: wrap line flag 
+  * @param  wrap: wrap line flag
   * @retval status of the operation
   */
 HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(Display_TypeDef*, LTCDLayer_t, uint16_t*, uint16_t*, const Font_TypeDef*, const char*, bool);

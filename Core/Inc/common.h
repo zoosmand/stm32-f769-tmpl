@@ -1,88 +1,44 @@
-/**
-  ******************************************************************************
-  * @file           : common.h
-  * @brief          : Header for common.c file.
-  *                   This file contains the common defines of the application.
-  ******************************************************************************
-  * @attention
-  *
-  ******************************************************************************
-  */
- 
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __COMMON_H
-#define __COMMON_H
+#ifndef COMMON_H
+#define COMMON_H
 
-#ifdef __cplusplus
-  extern "C" {
-#endif 
+#include <stdbool.h>
+#include <stdint.h>
 
-/* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include "stm32f7xx_hal.h"
 
-
-/* Exported types ------------------------------------------------------------*/
-    
-
-/* Private typedef -----------------------------------------------------------*/
-
-
-
-/* Private defines -----------------------------------------------------------*/
-
-/* Independent Watchdog */
-#define IWDG_KEY_RELOAD             0x0000aaaa               /*!< IWDG Reload Counter Enable   */
-#define IWDG_KEY_ENABLE             0x0000cccc               /*!< IWDG Peripheral Enable       */
-#define IWDG_KEY_WR_ACCESS_ENABLE   0x00005555               /*!< IWDG KR Write Access Enable  */
-
-
-/* Private macro -------------------------------------------------------------*/
-
-#define SWO_PrintChar(c) ITM_SendChar(c)
-
-#define SWO_PrintString(s) \
-  do { const char *p = s; while (*p) ITM_SendChar(*p++); } while (0)
-
-
-
-/**
- * @brief   Font type definition struct.
- */
-typedef struct {
-  uint8_t               Width;
-  uint8_t               Height;
-  uint32_t              Color;
-  uint32_t              Bgcolor;
-  uint32_t              BytesPerGlif;
-  uint8_t*              Font;
+/** Bitmap-font metadata and pixel colors used by display drawing functions. */
+typedef struct
+{
+  uint8_t Width;          /**< Glyph width in pixels. */
+  uint8_t Height;         /**< Glyph height in pixels. */
+  uint32_t Color;         /**< Foreground color in the active layer format. */
+  uint32_t Bgcolor;       /**< Background color in the active layer format. */
+  uint32_t BytesPerGlif;  /**< Bytes occupied by one glyph in Font. */
+  const uint8_t *Font;    /**< Non-null first glyph bitmap (ASCII space). */
 } Font_TypeDef;
 
-
-/**
- * @brief   Touchscreen touch context type definition struct.
- */
-typedef struct {
-  uint8_t               Event;
-  uint16_t              RawX;
-  uint16_t              RawY;
-  uint16_t              X;
-  uint16_t              Y;
-  uint16_t              LastX;
-  uint16_t              LastY;
-  uint16_t              BounceX;
-  uint16_t              BounceY;
-  uint8_t               StableCount;
-  uint8_t               ReleaseCount;
-  uint8_t               Touches;
-  uint32_t              Threshold;
-  uint32_t              TouchCount;
+/** Mutable coordinates and debounce counters for one touchscreen device. */
+typedef struct
+{
+  uint8_t Event;          /**< Raw FT6206 event bits from the last sample. */
+  uint16_t RawX;          /**< Untransformed controller X coordinate. */
+  uint16_t RawY;          /**< Untransformed controller Y coordinate. */
+  uint16_t X;             /**< Display-oriented X coordinate in pixels. */
+  uint16_t Y;             /**< Display-oriented Y coordinate in pixels. */
+  uint16_t LastX;         /**< X coordinate handled by the application. */
+  uint16_t LastY;         /**< Y coordinate handled by the application. */
+  uint16_t BounceX;       /**< Candidate X coordinate during debounce. */
+  uint16_t BounceY;       /**< Candidate Y coordinate during debounce. */
+  uint8_t StableCount;    /**< Consecutive stable samples. */
+  uint8_t ReleaseCount;   /**< Consecutive release-state samples. */
+  uint8_t Touches;        /**< Active contacts reported by the controller. */
+  uint32_t Threshold;     /**< HAL tick deadline used by debounce logic. */
+  uint32_t TouchCount;    /**< Samples accumulated for hold detection. */
 } TouchContext_TypeDef;
 
-
-/**
- * @brief   Touchscreen states enumeration.
- */
-typedef enum {
+/** Internal touchscreen state-machine states. */
+typedef enum
+{
   TOUCH_IDLE,
   TOUCH_DOWN,
   TOUCH_HOLD,
@@ -94,11 +50,9 @@ typedef enum {
   TOUCH_DISABLED,
 } TouchState_t;
 
-
-/**
- * @brief   Touchscreen events enumeration.
- */
-typedef enum {
+/** Touch events exposed to the application for one processed sample. */
+typedef enum
+{
   TOUCH_ON_DOWN,
   TOUCH_ON_UP,
   TOUCH_ON_MOVE,
@@ -106,76 +60,41 @@ typedef enum {
   TOUCH_ON_IDLE,
 } TouchEvent_t;
 
-
-/**
- * @brief   Touchscreen device type definition struct.
- */
-typedef struct {
-  uint16_t              Model;
-  uint8_t               Orientation;
-  TouchContext_TypeDef* Context;
-  TouchState_t          State;
-  TouchEvent_t          Event;
-  uint32_t*             BusHandler;
-  uint8_t               BusAddr;
-  HAL_StatusTypeDef     (*Callback)(uint32_t*);
+/** FT6206 device state and its owning I2C bus. */
+typedef struct
+{
+  uint16_t Model;                 /**< Controller model number. */
+  uint8_t Orientation;            /**< Display coordinate transform selector. */
+  TouchContext_TypeDef *Context;  /**< Non-null persistent sampling context. */
+  TouchState_t State;             /**< Current debounce/gesture state. */
+  TouchEvent_t Event;             /**< Event produced by the last sample. */
+  I2C_HandleTypeDef *BusHandler;  /**< Non-null initialized HAL I2C handle. */
+  uint8_t BusAddr;                /**< HAL-format 8-bit I2C address. */
 } TouchScreen_TypeDef;
 
-
-/**
- * @brief   LTCD layer enumeration.
- */
-typedef enum {
+/** LTDC hardware layer index. */
+typedef enum
+{
   L1 = 0,
   L2 = 1,
 } LTCDLayer_t;
 
-
-/**
- * @brief   Display device type definition struct.
- */
-typedef struct {
-  FunctionalState       Lock;
-  uint16_t              Model;
-  LTDC_LayerCfgTypeDef* Layer1;
-  LTDC_LayerCfgTypeDef* Layer2;
-  uint32_t              BgLayer1;
-  uint32_t              BgLayer2;
-  TouchScreen_TypeDef*  TouchDev;
-  DSI_HandleTypeDef*    DSIDevHandler;
-  DMA2D_HandleTypeDef*  DMADevHandler;
-  SDRAM_HandleTypeDef*  SDRAMDevHandler;
-  LTDC_HandleTypeDef*   LTDCDevHandler;
-  uint16_t              Width;
-  uint16_t              Height;
-  uint32_t              ColorSchema;
-  HAL_StatusTypeDef     (*Callback)(uint32_t*);
+/** Display geometry, framebuffer layers, and peripheral ownership. */
+typedef struct
+{
+  FunctionalState Lock;           /**< ENABLE while initialization has failed or is in progress. */
+  uint16_t Model;                  /**< Display-controller model number. */
+  LTDC_LayerCfgTypeDef *Layer1;    /**< Primary LTDC layer configuration. */
+  LTDC_LayerCfgTypeDef *Layer2;    /**< Secondary LTDC layer configuration. */
+  uint32_t BgLayer1;               /**< Primary-layer ARGB background color. */
+  uint32_t BgLayer2;               /**< Secondary-layer ARGB background color. */
+  DSI_HandleTypeDef *DSIDevHandler;       /**< DSI host owned by this display. */
+  DMA2D_HandleTypeDef *DMADevHandler;     /**< DMA2D engine used for drawing. */
+  SDRAM_HandleTypeDef *SDRAMDevHandler;   /**< SDRAM containing framebuffers. */
+  LTDC_HandleTypeDef *LTDCDevHandler;     /**< LTDC driving the DSI stream. */
+  uint16_t Width;                  /**< Logical display width in pixels. */
+  uint16_t Height;                 /**< Logical display height in pixels. */
+  uint32_t ColorSchema;            /**< OTM8009A DSI pixel-format value. */
 } Display_TypeDef;
 
-
-
-
-/* Exported macro ------------------------------------------------------------*/
-#define FLAG_SET(registry, flag)        SET_BIT(registry, (1 << flag))
-#define FLAG_CLR(registry, flag)        CLEAR_BIT(registry, (1 << flag))
-#define FLAG_CHECK(registry, flag)      (READ_BIT(registry, (1 << flag)))
-
-#define PIN_H(port, pin)                SET_BIT(port->BSRR, pin)
-#define PIN_L(port, pin)                SET_BIT(port->BSRR, (pin << 16))
-#define PIN_LEVEL(port, pin)            (READ_BIT(port->IDR, pin))
-
-#define PREG_SET(registry, key)         SET_BIT(registry, (1 << key))
-#define PREG_CLR(registry, key)         CLEAR_BIT(registry, (1 << key))
-#define PREG_CHECK(registry, key)       (READ_BIT(registry, (1 << key)))
-
-
-/* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
-
-
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __COMMON_H */
+#endif /* COMMON_H */
