@@ -57,6 +57,7 @@
 /* External variables --------------------------------------------------------*/
 
 /* USER CODE BEGIN EV */
+extern EXTI_HandleTypeDef exti_line_touch;
 
 /* USER CODE END EV */
 
@@ -206,5 +207,9 @@ void LTDC_IRQHandler(void)
 /******************************************************************************/
 
 /* USER CODE BEGIN 1 */
+
+void EXTI15_10_IRQHandler(void) {
+  HAL_EXTI_IRQHandler(&exti_line_touch);
+}
 
 /* USER CODE END 1 */

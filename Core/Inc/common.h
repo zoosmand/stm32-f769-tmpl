@@ -45,19 +45,9 @@
 
 
 
-
 /**
- * @brief   Display device type definition struct.
+ * @brief   Font type definition struct.
  */
-typedef struct {
-  FunctionalState       Lock;
-  uint16_t              Model;
-  LTDC_LayerCfgTypeDef* Layer1;  
-  LTDC_LayerCfgTypeDef* Layer2;  
-  HAL_StatusTypeDef     (*Callback)(uint32_t*);
-} Display_TypeDef;
-
-
 typedef struct {
   uint8_t               Width;
   uint8_t               Height;
@@ -66,6 +56,101 @@ typedef struct {
   uint32_t              BytesPerGlif;
   uint8_t*              Font;
 } Font_TypeDef;
+
+
+/**
+ * @brief   Touchscreen touch context type definition struct.
+ */
+typedef struct {
+  uint8_t               Event;
+  uint16_t              RawX;
+  uint16_t              RawY;
+  uint16_t              X;
+  uint16_t              Y;
+  uint16_t              LastX;
+  uint16_t              LastY;
+  uint16_t              BounceX;
+  uint16_t              BounceY;
+  uint8_t               StableCount;
+  uint8_t               ReleaseCount;
+  uint8_t               Touches;
+  uint32_t              Threshold;
+  uint32_t              TouchCount;
+} TouchContext_TypeDef;
+
+
+/**
+ * @brief   Touchscreen states enumeration.
+ */
+typedef enum {
+  TOUCH_IDLE,
+  TOUCH_DOWN,
+  TOUCH_HOLD,
+  TOUCH_RELEASE,
+  TOUCH_UP,
+  TOUCH_DEBOUNCE,
+  TOUCH_ACTIVE,
+  TOUCH_LOCKED,
+  TOUCH_DISABLED,
+} TouchState_t;
+
+
+/**
+ * @brief   Touchscreen events enumeration.
+ */
+typedef enum {
+  TOUCH_ON_DOWN,
+  TOUCH_ON_UP,
+  TOUCH_ON_MOVE,
+  TOUCH_ON_HOLD,
+  TOUCH_ON_IDLE,
+} TouchEvent_t;
+
+
+/**
+ * @brief   Touchscreen device type definition struct.
+ */
+typedef struct {
+  uint16_t              Model;
+  uint8_t               Orientation;
+  TouchContext_TypeDef* Context;
+  TouchState_t          State;
+  TouchEvent_t          Event;
+  uint32_t*             BusHandler;
+  uint8_t               BusAddr;
+  HAL_StatusTypeDef     (*Callback)(uint32_t*);
+} TouchScreen_TypeDef;
+
+
+/**
+ * @brief   LTCD layer enumeration.
+ */
+typedef enum {
+  L1 = 0,
+  L2 = 1,
+} LTCDLayer_t;
+
+
+/**
+ * @brief   Display device type definition struct.
+ */
+typedef struct {
+  FunctionalState       Lock;
+  uint16_t              Model;
+  LTDC_LayerCfgTypeDef* Layer1;
+  LTDC_LayerCfgTypeDef* Layer2;
+  uint32_t              BgLayer1;
+  uint32_t              BgLayer2;
+  TouchScreen_TypeDef*  TouchDev;
+  DSI_HandleTypeDef*    DSIDevHandler;
+  DMA2D_HandleTypeDef*  DMADevHandler;
+  SDRAM_HandleTypeDef*  SDRAMDevHandler;
+  LTDC_HandleTypeDef*   LTDCDevHandler;
+  uint16_t              Width;
+  uint16_t              Height;
+  uint32_t              ColorSchema;
+  HAL_StatusTypeDef     (*Callback)(uint32_t*);
+} Display_TypeDef;
 
 
 

@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * File Name          : OTM8009A.h
+  * File Name          : otm8009a.h
   * Description        : This file provides code for the configuration
   *                      of the OTM8009A TFT Display.
   ******************************************************************************
@@ -40,12 +40,14 @@
 #ifdef _PORTRAIT_
   #define DISPLAY_HEIGHT              (uint16_t)(800)
   #define DISPLAY_WIDTH               (uint16_t)(480)
+  #define ORIENTATION                 0
 #endif
 
 // -------- Landscape --------
 #ifdef _LANDSCAPE_
   #define DISPLAY_HEIGHT             (uint16_t)(480)
   #define DISPLAY_WIDTH              (uint16_t)(800)
+  #define ORIENTATION                 1
 #endif
 
 
@@ -77,12 +79,13 @@
 #define L2_HEIGHT                   (uint16_t)(DISPLAY_HEIGHT - L2_PADDING_BOTTOM - L2_PADDING_TOP)
 #define L2_WIDTH                    (uint16_t)(DISPLAY_WIDTH - L2_PADDING_LEFT - L2_PADDING_RIGHT)
 
-#define L1_BYTES                    (uint32_t)(L1_HEIGHT * L1_WIDTH * 4)
-#define L2_BYTES                    (uint32_t)(L2_HEIGHT * L2_WIDTH * 4)
-#define L1_ADDR                     SDRAM_START_ADDR
-#define L2_ADDR                     (uint32_t)(L1_ADDR + 0x00800000)
-#define L1_MAX_ADDR                 (uint32_t)(L1_ADDR - 1)
-#define L2_MAX_ADDR                 SDRAM_MAX_ADDR
+#define BUF_SIZE                    (uint32_t)0x00200000 // 2Mb
+
+#define L1_FRONT_ADDR                SDRAM_START_ADDR
+#define L1_BACK_ADDR                 SDRAM_START_ADDR + BUF_SIZE
+#define L2_FRONT_ADDR                SDRAM_START_ADDR + BUF_SIZE * 2
+#define L2_BACK_ADDR                 SDRAM_START_ADDR + BUF_SIZE * 3
+
 
 
 
@@ -227,7 +230,8 @@
 /* Exported macro ------------------------------------------------------------*/
 extern DSI_HandleTypeDef hdsi;
 extern SDRAM_HandleTypeDef hsdram1;
-
+extern DMA2D_HandleTypeDef hdma2d;
+extern LTDC_HandleTypeDef hltdc;
 
 
 
@@ -247,24 +251,24 @@ extern SDRAM_HandleTypeDef hsdram1;
 
 
 /* Exported functions prototypes ---------------------------------------------*/
-HAL_StatusTypeDef OTM8009A_Init(uint32_t);
-HAL_StatusTypeDef OTM8009A_DisplayOn(void);
-HAL_StatusTypeDef OTM8009A_SetBrightness(uint8_t);
+Display_TypeDef* OTM8009A_Init(void);
+HAL_StatusTypeDef OTM8009A_DisplayOn(Display_TypeDef*);
+HAL_StatusTypeDef OTM8009A_SetBrightness(Display_TypeDef*, uint8_t);
 
 
 
 
-HAL_StatusTypeDef __attribute__((weak)) Display_FillLayer(LTDC_LayerCfgTypeDef*, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_FillLayer(Display_TypeDef*, LTCDLayer_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawPixel(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawPixel(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawVLine(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawVLine(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawHLine(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawHLine(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
 /**
   * @brief  Draws a symbol on a layer of the display
@@ -275,7 +279,7 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawRectangle(LTDC_LayerCfgTypeD
   * @param  ch: the target sysmbol to draw
   * @retval None
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, uint8_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(Display_TypeDef*, LTCDLayer_t, uint16_t*, uint16_t*, const Font_TypeDef*, uint8_t);
 
 /**
   * @brief  Draws a string on a layer of the display
@@ -287,11 +291,11 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(LTDC_LayerCfgTypeDef*
   * @param  wrap: wrap line flag 
   * @retval status of the operation
   */
-HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(LTDC_LayerCfgTypeDef*, uint16_t*, uint16_t*, const Font_TypeDef*, const char*, bool);
+HAL_StatusTypeDef __attribute__((weak)) Display_PrintString(Display_TypeDef*, LTCDLayer_t, uint16_t*, uint16_t*, const Font_TypeDef*, const char*, bool);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_DrawCircle(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
-HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(LTDC_LayerCfgTypeDef*, uint16_t, uint16_t, uint16_t, uint32_t);
+HAL_StatusTypeDef __attribute__((weak)) Display_FillCircle(Display_TypeDef*, LTCDLayer_t, uint16_t, uint16_t, uint16_t, uint32_t);
 
 #ifdef __cplusplus
 }

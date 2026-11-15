@@ -33,10 +33,13 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "common.h"
 #include "fonts.h"
 #include "fmc.h"
 #include "otm8009a.h"
+#include "ft6206.h"
 #include "display.h"
 /* USER CODE END Includes */
 
@@ -208,6 +211,7 @@ void Error_Handler(void);
 #define FMC_A2_Pin GPIO_PIN_2
 #define FMC_A2_GPIO_Port GPIOF
 #define LCD_INT_Pin GPIO_PIN_13
+#define LCD_INT_Pin_Pos GPIO_BSRR_BS13_Pos
 #define LCD_INT_GPIO_Port GPIOI
 #define uSD_Detect_Pin GPIO_PIN_15
 #define uSD_Detect_GPIO_Port GPIOI

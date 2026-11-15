@@ -48,6 +48,9 @@ DMA2D_HandleTypeDef hdma2d;
 
 DSI_HandleTypeDef hdsi;
 
+I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c4;          
+
 LTDC_HandleTypeDef hltdc;
 
 UART_HandleTypeDef huart1;
@@ -70,51 +73,22 @@ static void MX_DMA2D_Init(void);
 static void MX_DSIHOST_DSI_Init(void);
 static void MX_LTDC_Init(void);
 static void MX_FMC_Init(void);
+static void MX_I2C1_Init(void);
+static void MX_I2C4_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-LTDC_LayerCfgTypeDef layer1 = {
-  .WindowX0      = L1_PADDING_LEFT,
-  .WindowX1      = (L1_HEIGHT + L1_PADDING_RIGHT),
-  .WindowY0      = L1_PADDING_BOTTOM,
-  .WindowY1      = (L1_WIDTH + L1_PADDING_TOP),
-  .PixelFormat   = LTDC_PIXEL_FORMAT_ARGB8888,
-  .FBStartAdress = L1_ADDR,
-  .Alpha         = 125,
-  .Alpha0        = 0,
-  .BlendingFactor1 = LTDC_BLENDING_FACTOR1_PAxCA,
-  .BlendingFactor2 = LTDC_BLENDING_FACTOR2_PAxCA,
-  .ImageWidth    = L1_HEIGHT,
-  .ImageHeight   = L1_WIDTH,
-  .Backcolor.Blue = 0x00,
-  .Backcolor.Green = 0x00,
-  .Backcolor.Red = 0x00,
-};
-
-LTDC_LayerCfgTypeDef layer2 = {
-  .WindowX0      = L2_PADDING_LEFT,
-  .WindowX1      = (L2_HEIGHT + L2_PADDING_RIGHT),
-  .WindowY0      = L2_PADDING_BOTTOM,
-  .WindowY1      = (L2_WIDTH + L2_PADDING_TOP),
-  .PixelFormat   = LTDC_PIXEL_FORMAT_ARGB8888,
-  .FBStartAdress = L2_ADDR,
-  .Alpha         = 125,
-  .Alpha0        = 0,
-  .BlendingFactor1 = LTDC_BLENDING_FACTOR1_PAxCA,
-  .BlendingFactor2 = LTDC_BLENDING_FACTOR2_PAxCA,
-  .ImageWidth    = L2_HEIGHT,
-  .ImageHeight   = L2_WIDTH,
-  .Backcolor.Blue = 0x00,
-  .Backcolor.Green = 0x00,
-  .Backcolor.Red = 0x00,
-};
 
 
 
 
+/**
+  * @brief  The ITM initialization.
+  * @retval none
+  */
 static void ITM_Init(void)
 {
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
@@ -129,6 +103,12 @@ static void ITM_Init(void)
 }
 
 
+
+
+/**
+  * @brief  System write function.
+  * @retval length of the buffer to be output
+  */
 int _write(int file, char *ptr, int len)
 {
   (void)file;
@@ -172,7 +152,6 @@ int main(void)
 
   /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
-  // MPU_Config_Framebuffer();
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
@@ -191,15 +170,16 @@ int main(void)
   MX_GPIO_Init();
   MX_CRC_Init();
   MX_USART1_UART_Init();
+  MX_I2C1_Init();
+  MX_I2C4_Init();
+
   ITM_Init();
   
   MX_DMA2D_Init();
   MX_FMC_Init();
 
-
   SCB_EnableICache();
   SCB_EnableDCache();
-  
   
   MX_DSIHOST_DSI_Init();
   
@@ -207,23 +187,15 @@ int main(void)
   
   HAL_DSI_Start(&hdsi);
   
-  if (OTM8009A_Init(OTM8009A_FORMAT_RGB888) != HAL_OK) Error_Handler();
+  // MX_LWIP_Init();
 
-  
-  if (HAL_LTDC_ConfigLayer(&hltdc, &layer1, 0) != HAL_OK) Error_Handler();
-  if (HAL_LTDC_ConfigLayer(&hltdc, &layer2, 1) != HAL_OK) Error_Handler();
-  
-  if (Display_FillLayer(&layer1, (ARGB8888_Lightblue | 0xff000000))) Error_Handler();
-  if (Display_FillLayer(&layer2, (ARGB8888_Apple | 0xff000000))) Error_Handler();
-  
-  MX_LWIP_Init();
 
-  static Display_TypeDef display = {
-    .Model    = 8009,
-    .Lock     = DISABLE,
-    .Layer1   = &layer1,
-    .Layer2   = &layer2,
-  };
+
+  Display_TypeDef* display_0 = OTM8009A_Init();
+  if (display_0->Lock == ENABLE) Error_Handler();
+
+  TouchScreen_TypeDef* touch_0 = FT6206_Init();
+  if ((touch_0->State == TOUCH_LOCKED) | (touch_0->State == TOUCH_DISABLED)) Error_Handler();
 
   /* USER CODE END 2 */
 
@@ -233,8 +205,8 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-    Display_Run(&display);
-    MX_LWIP_Process();
+    Display_Run(display_0, touch_0);
+    // MX_LWIP_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -351,7 +323,7 @@ static void MX_DMA2D_Init(void)
 
   /* USER CODE END DMA2D_Init 1 */
   hdma2d.Instance = DMA2D;
-  hdma2d.Init.Mode = DMA2D_M2M;
+  hdma2d.Init.Mode = DMA2D_R2M;
   hdma2d.Init.ColorMode = DMA2D_OUTPUT_ARGB8888;
   hdma2d.Init.OutputOffset = 0;
 
@@ -781,12 +753,12 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(ARD_D13_SCK_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : NC4_Pin NC5_Pin uSD_Detect_Pin LCD_BL_CTRL_Pin */
-  // GPIO_InitStruct.Pin = NC4_Pin|NC5_Pin|uSD_Detect_Pin|LCD_BL_CTRL_Pin;
-  // GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  // GPIO_InitStruct.Pull = GPIO_NOPULL;
-  // HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = NC4_Pin|NC5_Pin|uSD_Detect_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
 
-  // GPIO init: make LCD_BL_CTRL output
+  /*Configure GPIO pins : LCD_BL_CTRL_Pin */
   GPIO_InitStruct.Pin = LCD_BL_CTRL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -874,10 +846,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(CEC_CLK_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LCD_INT_Pin */
-  GPIO_InitStruct.Pin = LCD_INT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(LCD_INT_GPIO_Port, &GPIO_InitStruct);
+  // GPIO_InitStruct.Pin = LCD_INT_Pin;
+  // GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
+  // GPIO_InitStruct.Pull = GPIO_NOPULL;
+  // HAL_GPIO_Init(LCD_INT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ARD_D5_PWM_Pin */
   GPIO_InitStruct.Pin = ARD_D5_PWM_Pin;
@@ -1038,6 +1010,107 @@ static void MX_GPIO_Init(void)
 
   /* USER CODE END MX_GPIO_Init_2 */
 }
+
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.Timing = 0x20404768;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
+}
+
+
+/**
+  * @brief I2C4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C4_Init(void)
+{
+
+  /* USER CODE BEGIN I2C4_Init 0 */
+
+  /* USER CODE END I2C4_Init 0 */
+
+  /* USER CODE BEGIN I2C4_Init 1 */
+
+  /* USER CODE END I2C4_Init 1 */
+  hi2c4.Instance = I2C4;
+  hi2c4.Init.Timing = 0x20404768;
+  hi2c4.Init.OwnAddress1 = 0;
+  hi2c4.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c4.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c4.Init.OwnAddress2 = 0;
+  hi2c4.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c4.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c4.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c4, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c4, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C4_Init 2 */
+
+  /* USER CODE END I2C4_Init 2 */
+
+}
+
+
+
 
 /* USER CODE BEGIN 4 */
 

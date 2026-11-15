@@ -10,9 +10,16 @@
 
 
 
-HAL_StatusTypeDef Display_TestSimplePrimitives(LTDC_LayerCfgTypeDef*);
+#define SIMPLE_PAUSE 1000U;
 
-void Display_Run(Display_TypeDef*);
+
+extern TouchState_t touch_activated_flag;
+
+
+void Display_Run(Display_TypeDef*, TouchScreen_TypeDef*);
+
+
+
 
 #ifdef __cplusplus
 }

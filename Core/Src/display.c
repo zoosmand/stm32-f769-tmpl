@@ -19,9 +19,15 @@
 
 
 
-#define SIMPLE_PAUSE 1000U;
-
 static __IO uint32_t step = 0;
+
+
+
+__STATIC_INLINE void on_move(Display_TypeDef*, TouchScreen_TypeDef*);
+__STATIC_INLINE void on_up(Display_TypeDef*, TouchScreen_TypeDef*);
+__STATIC_INLINE void on_down(Display_TypeDef*, TouchScreen_TypeDef*);
+__STATIC_INLINE void on_hold(Display_TypeDef*, TouchScreen_TypeDef*);
+
 
 
 
@@ -31,14 +37,18 @@ static __IO uint32_t step = 0;
 
 
 
+// --------------------------------------------------------------------------
+
+__STATIC_INLINE void on_move(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
+  //
+}
+
 
 
 // --------------------------------------------------------------------------
 
-void Display_Run(Display_TypeDef* dev) {
-
-  if (dev->Lock == ENABLE) return;
-
+__STATIC_INLINE void on_up(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
+  //
   Font_TypeDef font = {
     .Bgcolor      = (ARGB8888_Black | 0xff000000),
     .Color        = (ARGB8888_Lightblue | 0xff000000),
@@ -48,65 +58,77 @@ void Display_Run(Display_TypeDef* dev) {
     .BytesPerGlif = 96,
   };
 
-  Font_TypeDef font2 = {
-    .Bgcolor      = (ARGB8888_Black | 0xff000000),
-    .Color        = (ARGB8888_Apple | 0xff000000),
-    .Font         = (uint8_t*)&font_dot_5x7,
-    .Height       = 8,
-    .Width        = 6,
-    .BytesPerGlif = 6,
-  };
+
+  uint16_t lf = 2;
+
+  if (Display_DrawVLine(screen, L1, touch->Context->LastX, 0, screen->Height, lf, screen->BgLayer1) != HAL_OK) return;
+  if (Display_DrawHLine(screen, L1, 0, touch->Context->LastY, screen->Width, lf, screen->BgLayer1) != HAL_OK) return;
+
+  if (Display_DrawVLine(screen, L1, touch->Context->X, 0, screen->Height, lf, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
+  if (Display_DrawHLine(screen, L1, 0, touch->Context->Y, screen->Width, lf, (ARGB8888_Black | 0xff000000)) != HAL_OK) return;
+
+  touch->Context->LastX = touch->Context->X;
+  touch->Context->LastY = touch->Context->Y;
+
+  uint16_t x1 = 40;
+  uint16_t y1 = 40;
+  char position[20];
+  sprintf(position, "x:%d y:%d\n", touch->Context->X, touch->Context->Y); 
+
+  Display_FillRectangle(screen, L1, 40, 40, (font.Width * 12), font.Height, font.Bgcolor);
+  Display_PrintString(screen, L1, &x1, &y1, &font, position, false);
+
+}
 
 
-  uint32_t tick = HAL_GetTick();
-  
-  if (step >= tick) {
-    return;
-  } else {
-    step = tick + SIMPLE_PAUSE;
-    
+// --------------------------------------------------------------------------
+
+__STATIC_INLINE void on_hold(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
+  //
+}
 
 
-    // if (step % 2) {
-    //   if (Display_FillRectangle(dev->Layer1, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return;
-    // } else {
-    //   if (Display_FillRectangle(dev->Layer2, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return;
-    // }
+// --------------------------------------------------------------------------
 
-    if (Display_TestSimplePrimitives(dev->Layer1)) Error_Handler();
-
-    uint16_t x1 = 240;
-    uint16_t y1 = 80;
-    uint16_t x2 = 5;
-    uint16_t y2 = 120;
-
-    // Display_DrawSymbol(dev->Layer2, &x, &y, &font, '3');
-    // Display_DrawSymbol(dev->Layer2, &x, &y, &font, '4');
-    Display_PrintString(dev->Layer1, &x1, &y1, &font, "CoroideVO!86728543\n", false);
-    
-    Display_PrintString(dev->Layer2, &x2, &y2, &font2, "1234567890123456789012345678901234567890123456789012345678901234567890\n", false);
-
-    // Display_DrawVLine(dev->Layer2, 200, 220, 100, 3, (ARGB8888_Black | 0xff000000));
-
-    Display_DrawCircle(dev->Layer1, 100, 300, 50, 2, (ARGB8888_Blue | 0xff000000));
-    Display_FillCircle(dev->Layer2, 100, 200, 50, (ARGB8888_Blue | 0xff000000));
-
-  }
+__STATIC_INLINE void on_down(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
+  //
 }
 
 
 
-HAL_StatusTypeDef Display_TestSimplePrimitives(LTDC_LayerCfgTypeDef* layer) {
-  
-  // if (Display_FillRectangle(layer, 200, 100, 170, 150, (ARGB8888_White | 0xa0000000)) != HAL_OK) return HAL_ERROR;
+// --------------------------------------------------------------------------
 
-  if (Display_DrawPixel(layer, 10, 10, (ARGB8888_Yellow | 0xff000000)) != HAL_OK) return HAL_ERROR;
+void Display_Run(Display_TypeDef* screen, TouchScreen_TypeDef* touch) {
 
-  if (Display_DrawVLine(layer, 200, 320, 100, 3, (ARGB8888_Apple | 0xff000000)) != HAL_OK) return HAL_ERROR;
-  if (Display_DrawHLine(layer, 200, 320, 100, 2, (ARGB8888_Apple | 0xff000000)) != HAL_OK) return HAL_ERROR;
+  if (screen->Lock == ENABLE) return;
+  if (touch->State == TOUCH_LOCKED) return;
 
-  if (Display_DrawRectangle(layer, 350, 250, 104, 69, 4, (ARGB8888_Red | 0xff000000)) != HAL_OK) return HAL_ERROR;
 
-  return HAL_OK;
+  if (touch_activated_flag != TOUCH_ACTIVE) return;
+
+  TouchScreen_Process(touch);
+
+  switch (touch->Event) {
+    case TOUCH_ON_DOWN:
+      on_down(screen, touch);
+      break;
+    
+    case TOUCH_ON_UP:
+      on_up(screen, touch);
+      break;
+    
+    case TOUCH_ON_HOLD:
+      on_hold(screen, touch);
+      break;
+    
+    case TOUCH_ON_MOVE:
+      on_move(screen, touch);
+      break;
+    
+    case TOUCH_ON_IDLE:
+      default:
+      __NOP();
+      break;
+  }
 }
 
