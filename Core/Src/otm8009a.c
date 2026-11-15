@@ -607,6 +607,8 @@ HAL_StatusTypeDef __attribute__((weak)) Display_FillRectangle(Display_TypeDef* d
 
   dev->DMADevHandler->Instance->OOR = l->ImageWidth - h;
 
+  MODIFY_REG(dev->DMADevHandler->Instance->CR, DMA2D_CR_MODE, DMA2D_R2M);
+
   if (HAL_DMA2D_Start(dev->DMADevHandler, color, GET_POSITIOIN_ADDRESS(l, x, y), h, w) != HAL_OK) return HAL_ERROR;
 
   HAL_DMA2D_PollForTransfer(dev->DMADevHandler, HAL_MAX_DELAY);
@@ -696,7 +698,8 @@ HAL_StatusTypeDef __attribute__((weak)) Display_DrawSymbol(Display_TypeDef* dev,
   
   if ((*x + f->Width - 1) >= l->ImageHeight) return HAL_ERROR;
   if ((*y + f->Height - 1) >= l->ImageWidth) return HAL_ERROR;
-  
+
+
   const uint8_t *glyph = f->Font + (ch * f->BytesPerGlif);
   
   uint32_t pixel_count = 0;
