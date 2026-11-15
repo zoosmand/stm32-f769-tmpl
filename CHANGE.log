@@ -4,6 +4,37 @@ STM32F769I-DISCO firmware change log
 Unreleased
 ----------
 
+Added (issue #10)
+* DNS configuration from DHCP: LWIP_DNS is enabled, so the DHCP client
+  installs the option 6 servers (up to two). Changes are logged.
+* NTP time synchronization from DHCP: option 42 is requested
+  (LWIP_DHCP_GET_NTP_SRV, up to two servers) and handed to a project-owned
+  SNTPv4 client (LWIP/App/sntp_client.c, raw UDP API; the local lwIP tree has
+  no apps/sntp). Replies are validated (source address/port, mode, version,
+  stratum, leap indicator, kiss-o'-death, originate-timestamp cookie), the
+  time is compensated by half the round trip, servers fail over after a 3 s
+  timeout, and the clock resynchronizes hourly (30 s retry after a full failed
+  round). No server is hard-coded; without option 42 the firmware reports that.
+* Software UTC clock (Sntp_GetUnixTimeMs()): time of the last reply plus the
+  HAL tick, re-based daily so tick arithmetic never wraps.
+* Network screen rows DNS 1, DNS 2, NTP server, NTP status, and UTC time; the
+  home status line shows UTC time once synchronized.
+* Console: "ntp [sync]", "dns <hostname>"; "net" lists DNS and NTP servers.
+* On-demand tests "dns" (resolve example.com) and "ntp" (fresh
+  synchronization, plausible time and stratum); not part of the POST because
+  they need a DHCP lease.
+
+Fixed (issue #10)
+* LWIP_RAND() is rand(), which was never seeded, so DHCP transaction IDs and
+  the DNS ID/source-port randomization of LWIP_DNS_SECURE repeated on every
+  boot. It is now seeded at the first link-up from the device UID and timing
+  jitter (not cryptographic).
+
+Memory impact (issue #10, arm-none-eabi-size, -Og)
+* Flash text 112,048 -> 122,732 bytes; DTCM data+bss 40,828 -> 48,716 bytes
+  (DNS table, SNTP state, larger lwIP pool configuration). The 10 KiB lwIP heap
+  stays in the Ethernet RAM region (LWIP_RAM_HEAP_POINTER 0x20020400).
+
 Added (issue #7)
 * Touch user interface (ui.c): a home screen with NETWORK and LOG buttons and a
   status line, a Network screen (link, speed/duplex, DHCP state, IP address,
@@ -39,7 +70,7 @@ Fixed (issue #7)
 
 Memory impact (issue #7, arm-none-eabi-size, -Og)
 * Flash text 52,292 -> 112,048 bytes (lwIP linked in again, UI, fonts).
-* DTCM data+bss 9,256 -> 40,828 bytes (lwIP heap and pools ~30 KiB, log buffer
+* DTCM data+bss 9,256 -> 40,828 bytes (lwIP memory pools ~30 KiB, log buffer
   4.3 KiB). The lwIP RX buffer pool is in DTCM, which is uncached and reachable
   by the Ethernet DMA; descriptors stay in the dedicated Ethernet RAM.
 
@@ -104,7 +135,10 @@ Memory impact (arm-none-eabi-size, -Og)
 
 Known limitations
 * FreeRTOS is not yet included or started; lwIP remains configured for NO_SYS.
-* DNS is not configured (LWIP_DNS is 0), so the Network screen shows n/a.
+* The synchronized time is not written to the hardware RTC, so it is lost on
+  reset until the next SNTP exchange. Only UTC is shown (no time zone).
+* Failover to the second NTP server is implemented but was not exercised on
+  hardware because the first server always answered.
 * The Log screen shows the newest 26 lines; scrolling is not implemented.
 * Target hardware (STM32F769I-DISCO) verified: POST 13/13 and "test all" 15/15
   pass, console commands verified over the ST-LINK virtual COM port. Touch

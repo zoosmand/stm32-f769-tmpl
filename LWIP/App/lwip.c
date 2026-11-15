@@ -20,10 +20,8 @@
 #include "lwip/init.h"
 #include "lwip/netif.h"
 #include "lwip/prot/dhcp.h"
-#if LWIP_DNS
-#include "lwip/dns.h"
-#endif
 #include "ethernetif.h"
+#include "sntp_client.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -37,6 +35,7 @@ static uint32_t networkPollTimer;
 static bool networkInitialized;
 static bool networkReportedLink;
 static uint32_t networkReportedAddress;
+static uint32_t networkReportedDns[DNS_MAX_SERVERS];
 
 /** Log link and address changes once, through printf(). */
 static void network_ReportChanges(void)
@@ -81,6 +80,31 @@ static void network_ReportChanges(void)
       printf("DHCP: address released\r\n");
     }
   }
+
+  /* DNS servers are installed by the DHCP client (option 6). */
+  bool dnsChanged = false;
+  for (uint32_t index = 0U; index < DNS_MAX_SERVERS; index++)
+  {
+    const uint32_t server = ip4_addr_get_u32(&status.Dns[index]);
+    dnsChanged = dnsChanged || (server != networkReportedDns[index]);
+    networkReportedDns[index] = server;
+  }
+  if (dnsChanged)
+  {
+    printf("DHCP: DNS");
+    bool any = false;
+    for (uint32_t index = 0U; index < DNS_MAX_SERVERS; index++)
+    {
+      if (ip4_addr_get_u32(&status.Dns[index]) != 0U)
+      {
+        char text[16];
+        (void)ip4addr_ntoa_r(&status.Dns[index], text, sizeof(text));
+        printf("%s%s", any ? ", " : " ", text);
+        any = true;
+      }
+    }
+    printf("%s\r\n", any ? "" : " none");
+  }
 }
 
 void MX_LWIP_Init(void)
@@ -90,6 +114,7 @@ void MX_LWIP_Init(void)
   ip4_addr_t gateway;
 
   lwip_init();
+  Sntp_Init();
 
   ip4_addr_set_zero(&address);
   ip4_addr_set_zero(&netmask);
@@ -122,6 +147,7 @@ void MX_LWIP_Process(void)
 
   ethernetif_input(&gnetif);
   sys_check_timeouts();
+  Sntp_Process();
 
   if ((HAL_GetTick() - networkPollTimer) >= NETWORK_POLL_PERIOD_MS)
   {
@@ -156,9 +182,10 @@ HAL_StatusTypeDef Network_GetStatus(Network_StatusTypeDef *status)
   ip4_addr_copy(status->Address, *netif_ip4_addr(&gnetif));
   ip4_addr_copy(status->Netmask, *netif_ip4_netmask(&gnetif));
   ip4_addr_copy(status->Gateway, *netif_ip4_gw(&gnetif));
-#if LWIP_DNS
-  ip4_addr_copy(status->Dns, *ip_2_ip4(dns_getserver(0)));
-#endif
+  for (uint8_t index = 0U; index < DNS_MAX_SERVERS; index++)
+  {
+    ip4_addr_copy(status->Dns[index], *ip_2_ip4(dns_getserver(index)));
+  }
 
   if (status->LinkUp)
   {

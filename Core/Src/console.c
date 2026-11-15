@@ -3,6 +3,7 @@
 #include "lwip.h"
 #include "main.h"
 #include "otm8009a.h"
+#include "sntp_client.h"
 #include "ui.h"
 
 #include <stdio.h>
@@ -105,6 +106,8 @@ static void console_Help(void)
   printf("  bright <0-255>            OTM8009A display brightness (DCS)\r\n");
   printf("  info                      clocks, uptime, device state\r\n");
   printf("  net                       Ethernet link, DHCP and addresses\r\n");
+  printf("  dns <hostname>            resolve a name with the DHCP DNS servers\r\n");
+  printf("  ntp [sync]                NTP status, or request a synchronization\r\n");
   printf("  screen [home|network|log] show or select the UI screen\r\n");
   printf("  tap <x> <y>               inject a touch tap (pixels)\r\n");
   printf("  reset                     system reset\r\n");
@@ -251,6 +254,116 @@ static void console_Network(void)
   printf("MAC        %02X:%02X:%02X:%02X:%02X:%02X\r\n", status.Mac[0],
          status.Mac[1], status.Mac[2], status.Mac[3], status.Mac[4],
          status.Mac[5]);
+  for (uint32_t index = 0U; index < DNS_MAX_SERVERS; index++)
+  {
+    char server[16];
+    (void)ip4addr_ntoa_r(&status.Dns[index], server, sizeof(server));
+    printf("DNS %lu      %s\r\n", (unsigned long)(index + 1U), server);
+  }
+
+  Sntp_StatusTypeDef ntp;
+  (void)Sntp_GetStatus(&ntp);
+  printf("NTP        %s", Sntp_GetStateName(ntp.State));
+  for (uint8_t index = 0U; index < ntp.ServerCount; index++)
+  {
+    char server[16];
+    (void)ip4addr_ntoa_r(&ntp.Servers[index], server, sizeof(server));
+    printf("%s%s", (index == 0U) ? ", servers " : ", ", server);
+  }
+  printf("\r\n");
+}
+
+static void console_Ntp(uint32_t argc, char *argv[])
+{
+  if ((argc == 2U) && (strcmp(argv[1], "sync") == 0))
+  {
+    Sntp_RequestSync();
+    printf("NTP synchronization requested; result is logged\r\n");
+    return;
+  }
+  if (argc != 1U)
+  {
+    printf("usage: ntp [sync]\r\n");
+    return;
+  }
+
+  Sntp_StatusTypeDef ntp;
+  (void)Sntp_GetStatus(&ntp);
+  printf("state      %s\r\n", Sntp_GetStateName(ntp.State));
+  printf("servers    ");
+  if (ntp.ServerCount == 0U)
+  {
+    printf("none offered by DHCP (option 42)");
+  }
+  for (uint8_t index = 0U; index < ntp.ServerCount; index++)
+  {
+    char server[16];
+    (void)ip4addr_ntoa_r(&ntp.Servers[index], server, sizeof(server));
+    printf("%s%s", (index == 0U) ? "" : ", ", server);
+  }
+  printf("\r\n");
+
+  uint64_t unixMs = 0U;
+  if (!Sntp_GetUnixTimeMs(&unixMs))
+  {
+    printf("UTC        not synchronized\r\n");
+    return;
+  }
+  char utc[24];
+  char server[16];
+  Sntp_FormatUtc(unixMs, utc, sizeof(utc));
+  (void)ip4addr_ntoa_r(&ntp.SyncServer, server, sizeof(server));
+  printf("UTC        %s.%03lu\r\n", utc, (unsigned long)(unixMs % 1000U));
+  printf("last sync  %lu s ago from %s, stratum %u, rtt %lu ms, step %+ld ms\r\n",
+         (unsigned long)(ntp.LastSyncAgeMs / 1000U), server, ntp.Stratum,
+         (unsigned long)ntp.RoundTripMs, (long)ntp.LastStepMs);
+  printf("syncs      %lu\r\n", (unsigned long)ntp.SyncCount);
+}
+
+/* Name being resolved; dns_gethostbyname() completes asynchronously from
+   MX_LWIP_Process() in main-loop context. */
+static char consoleDnsName[64];
+
+static void console_DnsFound(const char *name, const ip_addr_t *address,
+                             void *arg)
+{
+  (void)arg;
+  if (address != NULL)
+  {
+    char text[IPADDR_STRLEN_MAX];
+    (void)ipaddr_ntoa_r(address, text, sizeof(text));
+    printf("DNS: %s -> %s\r\n", name, text);
+  }
+  else
+  {
+    printf("DNS: %s not resolved\r\n", name);
+  }
+}
+
+static void console_Dns(uint32_t argc, char *argv[])
+{
+  if ((argc != 2U) || (strlen(argv[1]) >= sizeof(consoleDnsName)))
+  {
+    printf("usage: dns <hostname>\r\n");
+    return;
+  }
+
+  (void)snprintf(consoleDnsName, sizeof(consoleDnsName), "%s", argv[1]);
+  ip_addr_t address;
+  const err_t status = dns_gethostbyname(consoleDnsName, &address,
+                                         console_DnsFound, NULL);
+  if (status == ERR_OK)
+  {
+    console_DnsFound(consoleDnsName, &address, NULL);
+  }
+  else if (status == ERR_INPROGRESS)
+  {
+    printf("resolving %s ...\r\n", consoleDnsName);
+  }
+  else
+  {
+    printf("DNS: request failed (%d)\r\n", (int)status);
+  }
 }
 
 static void console_Screen(uint32_t argc, char *argv[])
@@ -339,6 +452,14 @@ static void console_Execute(char *line)
   else if (strcmp(argv[0], "net") == 0)
   {
     console_Network();
+  }
+  else if (strcmp(argv[0], "ntp") == 0)
+  {
+    console_Ntp(argc, argv);
+  }
+  else if (strcmp(argv[0], "dns") == 0)
+  {
+    console_Dns(argc, argv);
   }
   else if (strcmp(argv[0], "screen") == 0)
   {

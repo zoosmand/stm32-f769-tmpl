@@ -4,6 +4,7 @@
 #include "log_buffer.h"
 #include "lwip.h"
 #include "otm8009a.h"
+#include "sntp_client.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -32,12 +33,12 @@
 #define UI_LOG_ROWS             26U
 #define UI_LOG_COLUMNS          LOG_BUFFER_COLUMNS
 
-#define UI_NET_FIRST_ROW_Y      80U
+#define UI_NET_FIRST_ROW_Y      70U
 #define UI_NET_ROW_STEP         36U
 #define UI_NET_LABEL_X          60U
 #define UI_NET_VALUE_X          320U
 #define UI_NET_VALUE_COLUMNS    26U
-#define UI_NET_ROWS             9U
+#define UI_NET_ROWS             11U
 
 #define UI_HOME_STATUS_Y        420U
 #define UI_HOME_STATUS_COLUMNS  44U
@@ -82,8 +83,8 @@ static const UiButton_TypeDef uiBackButton = {
 };
 
 static const char *const uiNetworkLabels[UI_NET_ROWS] = {
-  "Link", "Speed", "DHCP", "IP address", "Netmask", "Gateway", "DNS",
-  "MAC address", "Uptime",
+  "Link", "DHCP", "IP address", "Netmask", "Gateway", "DNS 1", "DNS 2",
+  "NTP server", "NTP status", "UTC time", "MAC address",
 };
 
 static Display_TypeDef *uiDisplay;
@@ -218,9 +219,20 @@ static void ui_RefreshHome(void)
   {
     (void)ip4addr_ntoa_r(&status.Address, address, sizeof(address));
   }
-  ui_FormatUptime(uptime, sizeof(uptime));
-  (void)snprintf(line, sizeof(line), "IP %s  link %s  up %s", address,
-                 status.LinkUp ? "up" : "down", uptime);
+  uint64_t unixMs = 0U;
+  if (Sntp_GetUnixTimeMs(&unixMs))
+  {
+    char utc[24];
+    Sntp_FormatUtc(unixMs, utc, sizeof(utc));
+    (void)snprintf(line, sizeof(line), "IP %s  link %s  %s UTC", address,
+                   status.LinkUp ? "up" : "down", &utc[11]);
+  }
+  else
+  {
+    ui_FormatUptime(uptime, sizeof(uptime));
+    (void)snprintf(line, sizeof(line), "IP %s  link %s  up %s", address,
+                   status.LinkUp ? "up" : "down", uptime);
+  }
 
   const uint16_t x = (uint16_t)((uiDisplay->Width -
       (UI_HOME_STATUS_COLUMNS * uiFontMedium.Width)) / 2U);
@@ -244,36 +256,109 @@ static void ui_DrawHome(void)
 static void ui_RefreshNetwork(bool force)
 {
   Network_StatusTypeDef status;
+  Sntp_StatusTypeDef ntp;
   char values[UI_NET_ROWS][UI_NET_VALUE_COLUMNS + 1U];
+  bool good[UI_NET_ROWS];
   (void)Network_GetStatus(&status);
+  (void)Sntp_GetStatus(&ntp);
 
   const size_t size = sizeof(values[0]);
-  (void)snprintf(values[0], size, "%s", !status.Initialized ? "not started" :
-                 (status.LinkUp ? "up" : "down (check cable)"));
-  if (status.LinkUp)
+  for (uint32_t row = 0U; row < UI_NET_ROWS; row++)
   {
-    (void)snprintf(values[1], size, "%lu Mbit/s %s duplex",
+    good[row] = true;
+  }
+
+  if (!status.Initialized)
+  {
+    (void)snprintf(values[0], size, "not started");
+  }
+  else if (status.LinkUp)
+  {
+    (void)snprintf(values[0], size, "up, %lu Mbit/s %s duplex",
                    (unsigned long)status.SpeedMbps,
                    status.FullDuplex ? "full" : "half");
   }
   else
   {
-    (void)snprintf(values[1], size, "-");
+    (void)snprintf(values[0], size, "down (check cable)");
   }
-  (void)snprintf(values[2], size, "%s",
+  good[0] = status.LinkUp;
+
+  (void)snprintf(values[1], size, "%s",
                  Network_GetDhcpStateName(status.DhcpState));
-  (void)ip4addr_ntoa_r(&status.Address, values[3], (int)size);
-  (void)ip4addr_ntoa_r(&status.Netmask, values[4], (int)size);
-  (void)ip4addr_ntoa_r(&status.Gateway, values[5], (int)size);
-#if LWIP_DNS
-  (void)ip4addr_ntoa_r(&status.Dns, values[6], (int)size);
-#else
-  (void)snprintf(values[6], size, "n/a (LWIP_DNS off)");
-#endif
-  (void)snprintf(values[7], size, "%02X:%02X:%02X:%02X:%02X:%02X",
+  good[1] = status.DhcpBound;
+  (void)ip4addr_ntoa_r(&status.Address, values[2], (int)size);
+  (void)ip4addr_ntoa_r(&status.Netmask, values[3], (int)size);
+  (void)ip4addr_ntoa_r(&status.Gateway, values[4], (int)size);
+
+  for (uint32_t index = 0U; index < 2U; index++)
+  {
+    if ((index < DNS_MAX_SERVERS) && (ip4_addr_get_u32(&status.Dns[index]) != 0U))
+    {
+      (void)ip4addr_ntoa_r(&status.Dns[index], values[5U + index], (int)size);
+    }
+    else
+    {
+      (void)snprintf(values[5U + index], size, "-");
+      good[5U + index] = index != 0U;
+    }
+  }
+
+  if (ntp.Synchronized)
+  {
+    (void)ip4addr_ntoa_r(&ntp.SyncServer, values[7], (int)size);
+  }
+  else if (ntp.ServerCount > 0U)
+  {
+    (void)ip4addr_ntoa_r(&ntp.Servers[0], values[7], (int)size);
+  }
+  else
+  {
+    (void)snprintf(values[7], size, "none (no DHCP option 42)");
+    good[7] = false;
+  }
+
+  if (ntp.State == SNTP_STATE_SYNCHRONIZED)
+  {
+    const uint32_t ageSeconds = ntp.LastSyncAgeMs / 1000U;
+    if (ageSeconds < 120U)
+    {
+      (void)snprintf(values[8], size, "synced %lu s ago, st %u",
+                     (unsigned long)ageSeconds, ntp.Stratum);
+    }
+    else if (ageSeconds < 7200U)
+    {
+      (void)snprintf(values[8], size, "synced %lu min ago, st %u",
+                     (unsigned long)(ageSeconds / 60U), ntp.Stratum);
+    }
+    else
+    {
+      const uint32_t hours = ((ageSeconds / 3600U) > 9999U) ? 9999U :
+                             (ageSeconds / 3600U);
+      (void)snprintf(values[8], size, "synced %lu h ago, st %u",
+                     (unsigned long)hours, ntp.Stratum);
+    }
+  }
+  else
+  {
+    (void)snprintf(values[8], size, "%s", Sntp_GetStateName(ntp.State));
+    good[8] = false;
+  }
+
+  uint64_t unixMs = 0U;
+  if (Sntp_GetUnixTimeMs(&unixMs))
+  {
+    Sntp_FormatUtc(unixMs, values[9], size);
+  }
+  else
+  {
+    (void)snprintf(values[9], size, "not synchronized");
+    good[9] = false;
+  }
+
+  (void)snprintf(values[10], size, "%02X:%02X:%02X:%02X:%02X:%02X",
                  status.Mac[0], status.Mac[1], status.Mac[2], status.Mac[3],
                  status.Mac[4], status.Mac[5]);
-  ui_FormatUptime(values[8], size);
 
   for (uint32_t row = 0U; row < UI_NET_ROWS; row++)
   {
@@ -281,11 +366,9 @@ static void ui_RefreshNetwork(bool force)
     {
       continue;
     }
-    const bool good = (row == 0U) ? status.LinkUp :
-                      ((row == 2U) ? status.DhcpBound : true);
     ui_DrawText(UI_NET_VALUE_X,
                 (uint16_t)(UI_NET_FIRST_ROW_Y + (row * UI_NET_ROW_STEP)),
-                &uiFontMedium, good ? UI_COLOR_TEXT : UI_COLOR_WARNING,
+                &uiFontMedium, good[row] ? UI_COLOR_TEXT : UI_COLOR_WARNING,
                 UI_COLOR_BACKGROUND, values[row], UI_NET_VALUE_COLUMNS);
     memcpy(uiNetworkShown[row], values[row], sizeof(uiNetworkShown[row]));
   }

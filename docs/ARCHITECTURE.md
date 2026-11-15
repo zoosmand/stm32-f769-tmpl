@@ -11,6 +11,7 @@ console.c    USART1 command console (diagnostics), polled from the main loop
 self_test.c  power-on self-test and on-demand peripheral tests
 ui.c         touch UI: home, Network, and printf() Log screens
 log_buffer.c line ring buffer filled from _write() for the Log screen
+sntp_client.c SNTP client and software UTC clock (LWIP/App)
 drivers      OTM8009A, FT6206, SDRAM, Ethernet, and other hardware services
 ```
 
@@ -80,6 +81,11 @@ publish state. Display rendering, I2C transactions, logging, and protocol
 processing stay in thread/main-loop context. Variables shared with interrupt
 context must be documented and use suitable synchronization for the access
 pattern.
+
+Network services come from the DHCP lease only. lwIP's DHCP client installs DNS
+servers (option 6) and calls `dhcp_set_ntp_servers()` (option 42), which the
+SNTP client implements. DNS lookups and SNTP replies complete in callbacks run
+by `MX_LWIP_Process()` in main-loop context, so they may call `printf()`.
 
 USART1 reception is interrupt driven: `HAL_UART_RxCpltCallback()` (producer)
 appends to a single-producer/single-consumer ring buffer that
