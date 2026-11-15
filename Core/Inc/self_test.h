@@ -35,6 +35,12 @@ typedef struct
   */
 SelfTest_Result_TypeDef SelfTest_Run(const SelfTest_Context_TypeDef *context);
 
+/** @brief Run only CPU/clock/UART/CRC tests, before complex peripherals. */
+SelfTest_Result_TypeDef SelfTest_RunEarly(const SelfTest_Context_TypeDef *context);
+
+/** @brief Run the peripheral portion of POST after board bring-up. */
+SelfTest_Result_TypeDef SelfTest_RunPeripheral(const SelfTest_Context_TypeDef *context);
+
 /**
   * @brief Run one named test, the POST suite ("post"), or every test ("all").
   * @param context (const SelfTest_Context_TypeDef*) Non-null initialized devices.

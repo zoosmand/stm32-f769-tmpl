@@ -82,6 +82,10 @@ typedef struct
 
 /* Memory Pool Declaration */
 #define ETH_RX_BUFFER_CNT             12U
+/* A declaration carrying the section attribute relocates the storage emitted
+ * by LWIP_MEMPOOL_DECLARE below. Ethernet DMA cannot access DTCM. */
+extern u8_t memp_memory_RX_POOL_base[]
+    __attribute__((section(".RxPoolSection"), aligned(32)));
 LWIP_MEMPOOL_DECLARE(RX_POOL, ETH_RX_BUFFER_CNT, sizeof(RxBuff_t), "Zero-copy RX PBUF pool");
 
 /* Variable Definitions */
@@ -149,7 +153,7 @@ void pbuf_free_custom(struct pbuf *p);
  * @param netif the already initialized lwip network interface structure
  *        for this ethernetif
  */
-static void low_level_init(struct netif *netif)
+static err_t low_level_init(struct netif *netif)
 {
   HAL_StatusTypeDef hal_eth_init_status = HAL_OK;
   /* HAL keeps a pointer to the MAC address, so it needs static storage. */
@@ -176,7 +180,7 @@ static void low_level_init(struct netif *netif)
     printf("ETH: MAC initialization failed (0x%08lX)\r\n", heth.ErrorCode);
     netif_set_link_down(netif);
     netif_set_down(netif);
-    return;
+    return ERR_IF;
   }
   ethMacReady = 1U;
 
@@ -224,14 +228,12 @@ static void low_level_init(struct netif *netif)
   {
     netif_set_link_down(netif);
     netif_set_down(netif);
-    return;
+    return ERR_OK;
   }
 
   ethernet_link_check_state(netif);
 #endif /* LWIP_ARP || LWIP_ETHERNET */
-
-
-
+  return ERR_OK;
 }
 
 /**
@@ -254,7 +256,7 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 {
   uint32_t i = 0U;
   struct pbuf *q = NULL;
-  err_t errval = ERR_OK;
+  (void)netif;
   ETH_BufferTypeDef Txbuffer[ETH_TX_DESC_CNT] = {0};
 
   memset(Txbuffer, 0 , ETH_TX_DESC_CNT*sizeof(ETH_BufferTypeDef));
@@ -284,9 +286,13 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
   TxConfig.TxBuffer = Txbuffer;
   TxConfig.pData = p;
 
-  HAL_ETH_Transmit(&heth, &TxConfig, ETH_DMA_TRANSMIT_TIMEOUT);
+  if ((ethMacReady == 0U) || (HAL_ETH_GetState(&heth) == HAL_ETH_STATE_ERROR))
+  {
+    return ERR_IF;
+  }
 
-  return errval;
+  return (HAL_ETH_Transmit(&heth, &TxConfig, ETH_DMA_TRANSMIT_TIMEOUT) == HAL_OK) ?
+         ERR_OK : ERR_IF;
 }
 
 /**
@@ -400,9 +406,7 @@ err_t ethernetif_init(struct netif *netif)
   netif->linkoutput = low_level_output;
 
   /* initialize the hardware */
-  low_level_init(netif);
-
-  return ERR_OK;
+  return low_level_init(netif);
 }
 
 /**

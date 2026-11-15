@@ -178,7 +178,14 @@ SECTIONS
     KEEP(*(.RxArraySection))
     . = ALIGN(32);
     KEEP(*(.TxArraySection))
+    . = ALIGN(32);
+    KEEP(*(.RxPoolSection))
   } >ETHRAM
+
+  /* The lwIP heap has a fixed address configured in lwipopts.h.  Keep the
+     DMA-owned objects below it and fail the link if they ever overlap. */
+  ASSERT(SIZEOF(.lwip_sec) <= 0x5000,
+         "Ethernet DMA objects overlap the lwIP heap at 0x20025000")
   
 
   /* Uninitialized data section */

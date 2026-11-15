@@ -121,8 +121,13 @@ void MX_LWIP_Init(void)
   ip4_addr_set_zero(&gateway);
 
   /* ethernetif_init() starts the MAC and probes the PHY without blocking. */
-  netif_add(&gnetif, &address, &netmask, &gateway, NULL, &ethernetif_init,
-            &ethernet_input);
+  if (netif_add(&gnetif, &address, &netmask, &gateway, NULL, &ethernetif_init,
+                &ethernet_input) == NULL)
+  {
+    printf("ETH: interface initialization failed\r\n");
+    networkInitialized = false;
+    return;
+  }
   netif_set_default(&gnetif);
 
   /* dhcp_start() requires an administratively up interface; DHCP then waits

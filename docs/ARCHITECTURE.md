@@ -15,9 +15,11 @@ sntp_client.c SNTP client and software UTC clock (LWIP/App)
 drivers      OTM8009A, FT6206, SDRAM, Ethernet, and other hardware services
 ```
 
-`main()` owns the order-sensitive platform bring-up. After every required device
-is ready, it arms the console, runs the POST, binds the devices to `App_Init()`,
-and repeatedly calls `Console_Process()`, `MX_LWIP_Process()`, and
+`main()` owns the order-sensitive platform bring-up. It arms the console and
+runs the core POST immediately after USART setup, before failure-prone board
+devices. It prints a checkpoint before each major initialization stage, runs
+the peripheral POST after bring-up, binds the devices to `App_Init()`, and
+repeatedly calls `Console_Process()`, `MX_LWIP_Process()`, and
 `App_Process()`. `App_Process()` turns completed touch taps into
 `Ui_HandleTap()` calls and lets `Ui_Process()` refresh the visible screen.
 
@@ -73,6 +75,9 @@ Before enabling the scheduler:
    bounded waits or explicit ownership rules.
 7. Budget task stacks and heap placement against DTCM/SRAM regions and keep
    Ethernet DMA memory non-cacheable or explicitly cache-coherent.
+8. Replace the blocking `_write()` UART backend with a queue and a dedicated
+   logging task (or DMA owner); its current bounded synchronous implementation
+   is deliberately main-thread-only.
 
 ## Interrupt and ownership rules
 
