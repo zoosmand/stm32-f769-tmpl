@@ -25,6 +25,7 @@
 #include "self_test.h"
 
 #include <stdio.h>
+#include <errno.h>
 
 /** SWO bit rate; matches the cortex-debug swoFrequency in launch.json. */
 #define ITM_SWO_FREQUENCY_HZ      1800000U
@@ -133,8 +134,12 @@ int _write(int file, char *ptr, int len)
   {
     const uint16_t chunk = (uint16_t)(((len - sent) > UINT16_MAX) ?
                                       UINT16_MAX : (len - sent));
-    (void)HAL_UART_Transmit(&huart1, (uint8_t *)&ptr[sent], chunk,
-                            STDOUT_UART_TIMEOUT_MS);
+    if (HAL_UART_Transmit(&huart1, (uint8_t *)&ptr[sent], chunk,
+                          STDOUT_UART_TIMEOUT_MS) != HAL_OK)
+    {
+      errno = EIO;
+      return (sent > 0) ? sent : -1;
+    }
     sent += chunk;
   }
   return len;
@@ -146,35 +151,6 @@ int _write(int file, char *ptr, int len)
   */
 int main(void)
 {
-  MPU_Config();
-  HAL_Init();
-  SystemClock_Config();
-
-  MX_GPIO_Init();
-  MX_CRC_Init();
-  MX_USART1_UART_Init();
-  /* Unbuffered stdout: every printf() reaches USART1/ITM immediately. */
-  (void)setvbuf(stdout, NULL, _IONBF, 0);
-  MX_I2C1_Init();
-  MX_I2C4_Init();
-  ITM_Init();
-
-  MX_DMA2D_Init();
-  MX_FMC_Init();
-
-  SCB_EnableICache();
-  SCB_EnableDCache();
-
-  MX_DSIHOST_DSI_Init();
-  MX_LTDC_Init();
-  HAL_DSI_Start(&hdsi);
-
-  Display_TypeDef *display = OTM8009A_Init();
-  TouchScreen_TypeDef *touch = FT6206_Init();
-  /* Non-blocking: PHY detection, link and DHCP are polled from the loop. */
-  MX_LWIP_Init();
-
-  /* Static lifetime: the console keeps this context for on-demand tests. */
   static SelfTest_Context_TypeDef selfTestContext = {
     .Crc = &hcrc,
     .Dma2d = &hdma2d,
@@ -185,16 +161,53 @@ int main(void)
     .Uart = &huart1,
     .Sdram = &hsdram1,
   };
+
+  MPU_Config();
+  HAL_Init();
+  SystemClock_Config();
+
+  SCB_EnableICache();
+  SCB_EnableDCache();
+
+  MX_GPIO_Init();
+  MX_CRC_Init();
+  MX_USART1_UART_Init();
+  /* Unbuffered stdout: every printf() reaches USART1/ITM immediately. */
+  (void)setvbuf(stdout, NULL, _IONBF, 0);
+  if (Console_Init(&huart1, &selfTestContext) != HAL_OK)
+  {
+    printf("BOOT: console RX unavailable\r\n");
+  }
+  printf("\r\nBOOT: USART1 ready\r\n");
+  (void)SelfTest_RunEarly(&selfTestContext);
+
+  printf("BOOT: initializing I2C\r\n");
+  MX_I2C1_Init();
+  MX_I2C4_Init();
+  ITM_Init();
+
+  printf("BOOT: initializing SDRAM and DMA2D\r\n");
+  MX_DMA2D_Init();
+  MX_FMC_Init();
+
+  printf("BOOT: initializing display pipeline\r\n");
+  MX_DSIHOST_DSI_Init();
+  MX_LTDC_Init();
+  HAL_DSI_Start(&hdsi);
+
+  Display_TypeDef *display = OTM8009A_Init();
+  printf("BOOT: display initialization %s\r\n",
+         (display != NULL) && (display->Lock == DISABLE) ? "complete" : "failed");
+  TouchScreen_TypeDef *touch = FT6206_Init();
+  /* Non-blocking: PHY detection, link and DHCP are polled from the loop. */
+  printf("BOOT: initializing Ethernet/lwIP\r\n");
+  MX_LWIP_Init();
+
   selfTestContext.Display = display;
   selfTestContext.Touch = touch;
 
-  if (Console_Init(&huart1, &selfTestContext) != HAL_OK)
-  {
-    printf("Console_Init failed: USART1 reception unavailable\r\n");
-  }
-
-  /* POST runs before App_Init() so a device failure is reported, not hidden. */
-  (void)SelfTest_Run(&selfTestContext);
+  /* The early phase already verified the core services used for reporting. */
+  (void)SelfTest_RunPeripheral(&selfTestContext);
 
   if (App_Init(display, touch) != HAL_OK)
   {

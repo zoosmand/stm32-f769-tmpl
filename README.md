@@ -69,15 +69,16 @@ make clean
 ```
 
 The linker script currently places code in the MCU's 2 MiB internal Flash,
-normal data in DTCM, Ethernet buffers in a dedicated SRAM region, and the stack
-and heap in SRAM2. External SDRAM is initialized at runtime and used for display
-framebuffers.
+normal data in DTCM, Ethernet descriptors, zero-copy RX buffers, and the lwIP
+heap in a dedicated non-cacheable SRAM region, and the C stack and heap in
+SRAM2. External SDRAM is initialized at runtime and used for display framebuffers.
 
 ## Runtime behavior
 
 After reset, the firmware initializes the clock tree and core memory
-attributes, starts SDRAM and the display pipeline, initializes the touch
-controller and Ethernet, runs the power-on self-test, and shows the touch UI.
+attributes, starts the USART console, and runs the early CPU/clock/USART/CRC
+POST. Boot checkpoints are printed while SDRAM, the display pipeline, touch,
+and Ethernet are initialized. A peripheral POST follows before the touch UI.
 Ethernet does not delay boot: the PHY, link, and DHCP lease are handled in the
 main loop and logged when they change. Diagnostic output is sent to both USART1 and ITM stimulus port 0 (SWO,
 1.8 MHz NRZ); the firmware configures the TPIU itself, so no debugger is

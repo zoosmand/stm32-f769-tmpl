@@ -4,6 +4,27 @@ STM32F769I-DISCO firmware change log
 Unreleased
 ----------
 
+Fixed (issue #12)
+* Moved the zero-copy Ethernet RX pool from DTCM, which Ethernet DMA cannot
+  access, into the MPU-protected non-cacheable ETHRAM region. The linker now
+  asserts that descriptors and RX buffers remain below the fixed lwIP heap at
+  0x20025000.
+* Ethernet MAC initialization failures now propagate through ethernetif_init()
+  and netif_add(); DHCP is not started for a failed interface. Transmit errors
+  are returned to lwIP instead of being reported as successful packets.
+* USART console reception and diagnostic output now start before I2C, SDRAM,
+  display, touch, and Ethernet initialization. Boot-stage messages identify
+  the subsystem reached if later initialization stalls or fails.
+* POST is split into an early CPU/clock/USART/CRC phase and a peripheral phase.
+  The console `test post` command still runs the complete POST suite.
+* The stdout hook returns a short write or EIO when HAL_UART_Transmit() fails
+  instead of silently claiming every byte was sent.
+
+Memory impact (issue #12, arm-none-eabi-size, -Og)
+* Flash text 122,732 -> 123,516 bytes. The RX pool moved from DTCM into the
+  19,139-byte DMA section; DTCM data+bss fell from 48,716 to 23,432 bytes. The lwIP heap was
+  moved from 0x20020400 to 0x20025000 to follow the DMA-owned pool.
+
 Added (issue #10)
 * DNS configuration from DHCP: LWIP_DNS is enabled, so the DHCP client
   installs the option 6 servers (up to two). Changes are logged.
@@ -71,8 +92,8 @@ Fixed (issue #7)
 Memory impact (issue #7, arm-none-eabi-size, -Og)
 * Flash text 52,292 -> 112,048 bytes (lwIP linked in again, UI, fonts).
 * DTCM data+bss 9,256 -> 40,828 bytes (lwIP memory pools ~30 KiB, log buffer
-  4.3 KiB). The lwIP RX buffer pool is in DTCM, which is uncached and reachable
-  by the Ethernet DMA; descriptors stay in the dedicated Ethernet RAM.
+  4.3 KiB). At that revision the lwIP RX pool was incorrectly placed in DTCM;
+  issue #12 relocates it to dedicated Ethernet RAM.
 
 Changed
 * Separated application processing from order-sensitive board initialization

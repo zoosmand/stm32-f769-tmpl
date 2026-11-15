@@ -52,6 +52,7 @@ typedef struct
   const char *Name;
   const char *Description;
   bool Post;
+  bool Early;
   bool (*Run)(const SelfTest_Context_TypeDef *context);
 } SelfTest_Case_TypeDef;
 
@@ -916,24 +917,24 @@ static bool test_Gpio(const SelfTest_Context_TypeDef *context)
 /* -------------------------------------------------------------------------- */
 
 static const SelfTest_Case_TypeDef selfTestCases[] = {
-  { "core",    "device ID, caches, FPU, MPU regions",          true,  test_Core },
-  { "clock",   "oscillators, PLLs, bus clocks, SysTick",       true,  test_Clock },
-  { "usart",   "USART1 console state and baud rate",           true,  test_Usart },
-  { "crc",     "CRC unit known-answer test",                   true,  test_Crc },
-  { "i2c1",    "I2C1 bus scan (Arduino connector)",            true,  test_I2c1 },
-  { "i2c4",    "I2C4 bus scan (touch, codec)",                 true,  test_I2c4 },
-  { "touch",   "FT6206 identification and status",             true,  test_Touch },
-  { "codec",   "WM8994 audio codec chip ID over I2C4",         true,  test_Codec },
-  { "eth",     "Ethernet MAC/LAN8742 PHY identification",      true,  test_Ethernet },
-  { "sdram",   "non-destructive SDRAM probe (top 64 bytes)",   true,  test_SdramProbe },
-  { "dma2d",   "DMA2D register-to-memory fill into scratch",   true,  test_Dma2d },
-  { "ltdc",    "LTDC enable, layer, refresh rate",             true,  test_Ltdc },
-  { "dsi",     "DSI host PHY/PLL and DCS command path",        true,  test_Dsi },
-  { "gpio",    "LEDs, backlight, DSI reset, user button",      true,  test_Gpio },
-  { "dns",     "resolve " SELF_TEST_DNS_HOSTNAME " via DHCP DNS servers", false, test_Dns },
-  { "ntp",     "SNTP synchronization with DHCP NTP server",    false, test_Ntp },
-  { "sdramfull", "8 MiB scratch: data/address bus, pattern",   false, test_SdramFull },
-  { "display", "color bars with framebuffer readback",         false, test_Display },
+  { "core",    "device ID, caches, FPU, MPU regions",          true,  true,  test_Core },
+  { "clock",   "oscillators, PLLs, bus clocks, SysTick",       true,  true,  test_Clock },
+  { "usart",   "USART1 console state and baud rate",           true,  true,  test_Usart },
+  { "crc",     "CRC unit known-answer test",                   true,  true,  test_Crc },
+  { "i2c1",    "I2C1 bus scan (Arduino connector)",            true,  false, test_I2c1 },
+  { "i2c4",    "I2C4 bus scan (touch, codec)",                 true,  false, test_I2c4 },
+  { "touch",   "FT6206 identification and status",             true,  false, test_Touch },
+  { "codec",   "WM8994 audio codec chip ID over I2C4",         true,  false, test_Codec },
+  { "eth",     "Ethernet MAC/LAN8742 PHY identification",      true,  false, test_Ethernet },
+  { "sdram",   "non-destructive SDRAM probe (top 64 bytes)",   true,  false, test_SdramProbe },
+  { "dma2d",   "DMA2D register-to-memory fill into scratch",   true,  false, test_Dma2d },
+  { "ltdc",    "LTDC enable, layer, refresh rate",             true,  false, test_Ltdc },
+  { "dsi",     "DSI host PHY/PLL and DCS command path",        true,  false, test_Dsi },
+  { "gpio",    "LEDs, backlight, DSI reset, user button",      true,  false, test_Gpio },
+  { "dns",     "resolve " SELF_TEST_DNS_HOSTNAME " via DHCP DNS servers", false, false, test_Dns },
+  { "ntp",     "SNTP synchronization with DHCP NTP server",    false, false, test_Ntp },
+  { "sdramfull", "8 MiB scratch: data/address bus, pattern",   false, false, test_SdramFull },
+  { "display", "color bars with framebuffer readback",         false, false, test_Display },
 };
 
 #define SELF_TEST_CASE_COUNT (sizeof(selfTestCases) / sizeof(selfTestCases[0]))
@@ -989,6 +990,41 @@ SelfTest_Result_TypeDef SelfTest_Run(const SelfTest_Context_TypeDef *context)
   }
   selfTest_PrintSummary("POST result", &result);
   return result;
+}
+
+static SelfTest_Result_TypeDef selfTest_RunPostPhase(
+    const SelfTest_Context_TypeDef *context, bool early, const char *title)
+{
+  SelfTest_Result_TypeDef result = {0U, 0U};
+  printf("\r\n%s\r\n", title);
+  printf("-----------------------------------------------\r\n");
+  if (context == NULL)
+  {
+    result.Failed++;
+    printf("[FAIL] test context\r\n");
+    return result;
+  }
+  for (uint32_t index = 0U; index < SELF_TEST_CASE_COUNT; index++)
+  {
+    if (selfTestCases[index].Post && (selfTestCases[index].Early == early))
+    {
+      selfTest_RunCase(context, &selfTestCases[index], &result);
+    }
+  }
+  selfTest_PrintSummary(early ? "Early POST result" : "Peripheral POST result",
+                        &result);
+  return result;
+}
+
+SelfTest_Result_TypeDef SelfTest_RunEarly(const SelfTest_Context_TypeDef *context)
+{
+  return selfTest_RunPostPhase(context, true, "STM32F769I-DISCO early POST");
+}
+
+SelfTest_Result_TypeDef SelfTest_RunPeripheral(const SelfTest_Context_TypeDef *context)
+{
+  return selfTest_RunPostPhase(context, false,
+                               "STM32F769I-DISCO peripheral POST");
 }
 
 HAL_StatusTypeDef SelfTest_RunByName(const SelfTest_Context_TypeDef *context,
