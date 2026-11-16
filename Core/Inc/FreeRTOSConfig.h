@@ -25,7 +25,7 @@ void Rtos_AssertFailed(const char *file, int line);
 
 #define configSUPPORT_DYNAMIC_ALLOCATION         1
 #define configSUPPORT_STATIC_ALLOCATION          1
-#define configTOTAL_HEAP_SIZE                    (64U * 1024U)
+#define configTOTAL_HEAP_SIZE                    (32U * 1024U)
 #define configAPPLICATION_ALLOCATED_HEAP         0
 #define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP 0
 

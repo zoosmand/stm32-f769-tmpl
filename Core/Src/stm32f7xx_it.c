@@ -82,9 +82,7 @@ void UsageFault_Handler(void)
   }
 }
 
-/**
-  * @brief This function handles System service call via SWI instruction.
-  */
+/* SVC and PendSV are supplied by the FreeRTOS Cortex-M7 port. */
 /**
   * @brief This function handles Debug monitor.
   */
@@ -92,9 +90,6 @@ void DebugMon_Handler(void)
 {
 }
 
-/**
-  * @brief This function handles Pendable request for system service.
-  */
 /**
   * @brief This function handles System tick timer.
   */

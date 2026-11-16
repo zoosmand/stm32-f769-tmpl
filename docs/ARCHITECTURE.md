@@ -51,12 +51,14 @@ ownership of the same peripheral without a clearly documented boundary.
 
 ## FreeRTOS ownership
 
-FreeRTOS-Kernel V11.3.3 uses the GCC Cortex-M7 r0p1 port and a 1 kHz tick.
+FreeRTOS-Kernel V11.3.3 uses the conservative STM32Cube-compatible GCC
+Cortex-M7 r0p1 port and a 1 kHz tick. The MCU reports core revision r1p0, so
+the port's r0p1 erratum workaround is harmless but not required.
 Board initialization, the early POST, and the peripheral POST run before the
 scheduler. The scheduler then starts one statically allocated `platform` task,
 which calls `Console_Process()`, `MX_LWIP_Process()`, and `App_Process()` every
 millisecond. Static idle and timer tasks are also provided; heap scheme 4
-reserves 64 KiB in DTCM for future RTOS objects.
+reserves 32 KiB in DTCM for future RTOS objects.
 
 FreeRTOS owns SVC and PendSV. The project SysTick wrapper always calls
 `HAL_IncTick()` and calls `xPortSysTickHandler()` only after scheduler startup,

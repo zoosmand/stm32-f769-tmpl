@@ -157,6 +157,7 @@ Core/                         Application and board initialization
 Drivers/                      Local STM32CubeF7 drivers (ignored by Git)
 LWIP/                         Project-owned lwIP and Ethernet integration
 Middlewares/Third_Party/LwIP/ Local lwIP sources (ignored by Git)
+Middlewares/Third_Party/FreeRTOS-Kernel/ Tracked FreeRTOS V11.3.3 subset
 docs/                         Development documentation
 Makefile                      GNU Arm build definition
 STM32F769XX_FLASH.ld          Internal-Flash linker script

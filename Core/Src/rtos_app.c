@@ -109,7 +109,9 @@ void vApplicationMallocFailedHook(void)
 void vApplicationStackOverflowHook(TaskHandle_t task, char *taskName)
 {
   (void)task;
-  (void)taskName;
+  taskDISABLE_INTERRUPTS();
+  printf("FreeRTOS stack overflow: %s\r\n",
+         (taskName != NULL) ? taskName : "unknown");
   Rtos_AssertFailed("stack overflow", 0);
 }
 

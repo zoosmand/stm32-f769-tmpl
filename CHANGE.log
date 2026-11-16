@@ -12,7 +12,7 @@ Added (issue #14)
   before the scheduler starts.
 * Console command `rtos` reports scheduler state, tick count, free/minimum
   heap, and the platform task's stack high-water mark.
-* Static idle and timer task storage plus heap scheme 4 (64 KiB) for future
+* Static idle and timer task storage plus heap scheme 4 (32 KiB) for future
   dynamically created RTOS objects.
 
 Changed (issue #14)
@@ -23,9 +23,9 @@ Changed (issue #14)
   stack calls and callbacks execute in the single platform task.
 
 Memory impact (issue #14, arm-none-eabi-size, -Og)
-* Flash text 123,524 -> 131,344 bytes; DTCM data+bss is 99,104 bytes with
-  approximately 31 KiB remaining before ETHRAM. Ethernet DMA placement is
-  unchanged.
+* Flash text 123,524 -> 131,416 bytes; the 32 KiB heap leaves 64,736 bytes of
+  DTCM headroom (approximately 63 KiB) after the 66,336-byte data+bss
+  footprint. Ethernet DMA placement is unchanged.
 
 Fixed (issue #12)
 * Moved the zero-copy Ethernet RX pool from DTCM, which Ethernet DMA cannot
