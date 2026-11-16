@@ -23,6 +23,7 @@
 #include "lwip.h"
 #include "otm8009a.h"
 #include "self_test.h"
+#include "rtos_app.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -214,14 +215,8 @@ int main(void)
     /* Keep the diagnostic console alive; App_Process() stays idle. */
     printf("App_Init failed: display or touchscreen not ready\r\n");
   }
-  Console_PrintPrompt();
-
-  while (1)
-  {
-    Console_Process();
-    MX_LWIP_Process();
-    App_Process();
-  }
+  Rtos_Start();
+  return 0;
 }
 
 /**

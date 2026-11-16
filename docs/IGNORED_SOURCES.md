@@ -1,9 +1,8 @@
 # Supplying ignored source trees
 
-The repository intentionally does not track STM32CubeF7 vendor drivers or
-third-party middleware. This keeps project history focused on project-owned
-firmware while allowing a checkout to use a known, compatible STM32CubeF7
-distribution.
+The repository normally does not track STM32CubeF7 vendor drivers or
+third-party middleware. The explicit exception is the FreeRTOS kernel listed
+below, which is tracked to make the scheduler build reproducible.
 
 ## Required local sources
 
@@ -30,6 +29,16 @@ Core/
 
 Do not overwrite those directories while installing the vendor package.
 
+The repository also tracks an unmodified subset of the official
+FreeRTOS-Kernel V11.3.3 release plus a project provenance note:
+
+```text
+Middlewares/Third_Party/FreeRTOS-Kernel/
+```
+
+Do not overwrite or delete this directory when copying STM32CubeF7 sources.
+Changes to the tracked kernel require an explicit version/provenance review.
+
 ## Preparing a checkout
 
 1. Clone the repository and select the development branch:
@@ -41,7 +50,7 @@ Do not overwrite those directories while installing the vendor package.
    ```
 
 2. Copy the required directories from the chosen STM32CubeF7 package into the
-   paths listed above.
+   paths listed above without replacing the tracked FreeRTOS kernel directory.
 
 3. Confirm that CMSIS contains the STM32F769 device headers and that the local
    toolchain provides `arm-none-eabi-gcc`.
@@ -59,7 +68,8 @@ when the firmware's compiled dependency set changes.
 ## Provenance and sharing
 
 Record the STM32CubeF7 package name and version used for a reproducible build.
-Ignored paths are not added by ordinary `git add`, which is intentional.
+Ignored paths are not added by ordinary `git add`, which is intentional. The
+FreeRTOS path is explicitly unignored in `.gitignore` and is versioned.
 
 Before publishing vendor sources, verify their license and provenance. If the
 project later needs reproducible dependency retrieval, use a reviewed submodule

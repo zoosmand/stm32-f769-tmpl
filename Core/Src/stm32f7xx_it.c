@@ -18,6 +18,10 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f7xx_it.h"
+#include "FreeRTOS.h"
+#include "task.h"
+
+extern void xPortSysTickHandler(void);
 
 extern UART_HandleTypeDef huart1;
 
@@ -78,24 +82,11 @@ void UsageFault_Handler(void)
   }
 }
 
-/**
-  * @brief This function handles System service call via SWI instruction.
-  */
-void SVC_Handler(void)
-{
-}
-
+/* SVC and PendSV are supplied by the FreeRTOS Cortex-M7 port. */
 /**
   * @brief This function handles Debug monitor.
   */
 void DebugMon_Handler(void)
-{
-}
-
-/**
-  * @brief This function handles Pendable request for system service.
-  */
-void PendSV_Handler(void)
 {
 }
 
@@ -105,6 +96,10 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   HAL_IncTick();
+  if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+  {
+    xPortSysTickHandler();
+  }
 }
 
 void LTDC_IRQHandler(void)

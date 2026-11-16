@@ -14,8 +14,8 @@ HAL_StatusTypeDef App_Init(Display_TypeDef *display, TouchScreen_TypeDef *touch)
 
 /**
   * @brief Execute one non-blocking iteration of application work.
-  * @note The bare-metal loop calls this continuously. A future FreeRTOS task
-  *       may call it periodically without changing board initialization.
+  * @note The FreeRTOS platform task calls this periodically after board
+  *       initialization and POST complete.
   */
 void App_Process(void);
 

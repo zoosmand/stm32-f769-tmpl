@@ -78,9 +78,11 @@ SRAM2. External SDRAM is initialized at runtime and used for display framebuffer
 After reset, the firmware initializes the clock tree and core memory
 attributes, starts the USART console, and runs the early CPU/clock/USART/CRC
 POST. Boot checkpoints are printed while SDRAM, the display pipeline, touch,
-and Ethernet are initialized. A peripheral POST follows before the touch UI.
+and Ethernet are initialized. A peripheral POST follows before the touch UI
+and FreeRTOS scheduler start. The statically allocated `platform` task then
+services the console, raw lwIP, and UI every millisecond.
 Ethernet does not delay boot: the PHY, link, and DHCP lease are handled in the
-main loop and logged when they change. Diagnostic output is sent to both USART1 and ITM stimulus port 0 (SWO,
+platform task and logged when they change. Diagnostic output is sent to both USART1 and ITM stimulus port 0 (SWO,
 1.8 MHz NRZ); the firmware configures the TPIU itself, so no debugger is
 required.
 
@@ -109,6 +111,7 @@ test <name|post|all>      run one test, the POST suite, or every test
 led <1|2> <on|off|toggle> drive a user LED
 bright <0-255>            OTM8009A display brightness (DCS)
 info                      clocks, uptime, device state
+rtos                      scheduler, heap and stack status
 net                       Ethernet link, DHCP, addresses, DNS and NTP servers
 dns <hostname>            resolve a name with the DHCP DNS servers
 ntp [sync]                NTP status, or request a synchronization
@@ -154,6 +157,7 @@ Core/                         Application and board initialization
 Drivers/                      Local STM32CubeF7 drivers (ignored by Git)
 LWIP/                         Project-owned lwIP and Ethernet integration
 Middlewares/Third_Party/LwIP/ Local lwIP sources (ignored by Git)
+Middlewares/Third_Party/FreeRTOS-Kernel/ Tracked FreeRTOS V11.3.3 subset
 docs/                         Development documentation
 Makefile                      GNU Arm build definition
 STM32F769XX_FLASH.ld          Internal-Flash linker script

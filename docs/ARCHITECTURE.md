@@ -49,35 +49,31 @@ HAL cannot meet. Such code must document the affected register, concurrency and
 cache assumptions, and why HAL is unsuitable. Do not mix register-level and HAL
 ownership of the same peripheral without a clearly documented boundary.
 
-## FreeRTOS preparation
+## FreeRTOS ownership
 
-FreeRTOS is not enabled yet. The current structure prepares for it by keeping
-`App_Process()` non-blocking and separating it from board initialization. A
-future scheduler integration can create an application task after `App_Init()`
-and replace the bare-metal loop without moving peripheral setup into a task.
+FreeRTOS-Kernel V11.3.3 uses the conservative STM32Cube-compatible GCC
+Cortex-M7 r0p1 port and a 1 kHz tick. The MCU reports core revision r1p0, so
+the port's r0p1 erratum workaround is harmless but not required.
+Board initialization, the early POST, and the peripheral POST run before the
+scheduler. The scheduler then starts one statically allocated `platform` task,
+which calls `Console_Process()`, `MX_LWIP_Process()`, and `App_Process()` every
+millisecond. Static idle and timer tasks are also provided; heap scheme 4
+reserves 32 KiB in DTCM for future RTOS objects.
 
-Before enabling the scheduler:
+FreeRTOS owns SVC and PendSV. The project SysTick wrapper always calls
+`HAL_IncTick()` and calls `xPortSysTickHandler()` only after scheduler startup,
+so HAL timeouts and the RTOS share the same 1 ms time base. Interrupt priority
+5 is the highest priority permitted to call FreeRTOS `FromISR` APIs; touch and
+LTDC use 5 and USART1 uses 6.
 
-1. Choose the HAL time base and ensure it remains valid after the scheduler
-   starts.
-2. Reserve interrupt priorities that comply with
-   `configMAX_SYSCALL_INTERRUPT_PRIORITY`; the touch EXTI and LTDC priorities
-   are currently 5 and USART1 is 6, and must be checked against that
-   configuration.
-3. Convert interrupt-to-task state transfer to task notifications, queues, or
-   event groups where appropriate. Interrupt-shared scalar flags must remain
-   `volatile` but do not by themselves provide task synchronization.
-4. Define single owners or mutexes for I2C, DMA2D, DSI/LTDC, SDRAM drawing, UART,
-   and lwIP.
-5. Select the lwIP RTOS mode deliberately. The present configuration uses
-   `NO_SYS=1` and must not be combined with the threaded tcpip core unchanged.
-6. Replace indefinite waits such as `HAL_MAX_DELAY` in task-facing code with
-   bounded waits or explicit ownership rules.
-7. Budget task stacks and heap placement against DTCM/SRAM regions and keep
-   Ethernet DMA memory non-cacheable or explicitly cache-coherent.
-8. Replace the blocking `_write()` UART backend with a queue and a dedicated
-   logging task (or DMA owner); its current bounded synchronous implementation
-   is deliberately main-thread-only.
+lwIP deliberately remains in `NO_SYS=1` raw-API mode for this migration. The
+platform task is its sole owner, including DNS and SNTP callbacks. Do not call
+lwIP from another task or ISR. A future threaded-lwIP migration must add a
+complete `sys_arch` port and change this ownership model as one reviewed step.
+
+The blocking `_write()` path is safe under the present single-output-task
+model. Before multiple tasks log concurrently, replace it with a queue and a
+dedicated UART/log task or protect it with an explicit serialization policy.
 
 ## Interrupt and ownership rules
 

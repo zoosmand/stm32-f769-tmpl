@@ -43,7 +43,9 @@ before continuing.
 - Follow [the project naming conventions](NAMING_CONVENTIONS.md).
 - Keep imported vendor and middleware code in its upstream style.
 - Preserve the boundary between project-owned `Core` and `LWIP` code and the
-  ignored vendor trees under `Drivers` and `Middlewares`.
+  ignored vendor trees under `Drivers` and `Middlewares`. The tracked
+  `Middlewares/Third_Party/FreeRTOS-Kernel` directory is the documented
+  exception and must remain byte-identical to its recorded upstream release.
 - Document public interfaces, structures, units, blocking behavior, ownership,
   and task or interrupt restrictions where relevant.
 - Keep comments focused on design intent, hardware constraints, and non-obvious

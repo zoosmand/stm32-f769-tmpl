@@ -42,6 +42,7 @@ Core/Src/self_test.c \
 Core/Src/console.c \
 Core/Src/log_buffer.c \
 Core/Src/ui.c \
+Core/Src/rtos_app.c \
 Core/Src/stm32f7xx_it.c \
 Core/Src/stm32f7xx_hal_msp.c \
 LWIP/App/lwip.c \
@@ -165,7 +166,15 @@ Core/Src/ft6206.c \
 Core/Src/dot_5x7.c \
 Core/Src/dot_10x14.c \
 Core/Src/dot_15x21.c \
-Core/Src/dot_20x28.c
+Core/Src/dot_20x28.c \
+Middlewares/Third_Party/FreeRTOS-Kernel/tasks.c \
+Middlewares/Third_Party/FreeRTOS-Kernel/list.c \
+Middlewares/Third_Party/FreeRTOS-Kernel/queue.c \
+Middlewares/Third_Party/FreeRTOS-Kernel/timers.c \
+Middlewares/Third_Party/FreeRTOS-Kernel/event_groups.c \
+Middlewares/Third_Party/FreeRTOS-Kernel/stream_buffer.c \
+Middlewares/Third_Party/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1/port.c \
+Middlewares/Third_Party/FreeRTOS-Kernel/portable/MemMang/heap_4.c
 
 
 # ASM sources
@@ -250,6 +259,8 @@ C_INCLUDES =  \
 -IMiddlewares/Third_Party/LwIP/src/include/compat/posix/sys \
 -IMiddlewares/Third_Party/LwIP/src/include/compat/stdc \
 -IMiddlewares/Third_Party/LwIP/system/arch \
+-IMiddlewares/Third_Party/FreeRTOS-Kernel/include \
+-IMiddlewares/Third_Party/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1 \
 -IDrivers/CMSIS/Include
 
 

@@ -5,6 +5,7 @@
 #include "otm8009a.h"
 #include "sntp_client.h"
 #include "ui.h"
+#include "rtos_app.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,6 +106,7 @@ static void console_Help(void)
   printf("  led <1|2> <on|off|toggle> drive a user LED\r\n");
   printf("  bright <0-255>            OTM8009A display brightness (DCS)\r\n");
   printf("  info                      clocks, uptime, device state\r\n");
+  printf("  rtos                      scheduler, heap and stack status\r\n");
   printf("  net                       Ethernet link, DHCP and addresses\r\n");
   printf("  dns <hostname>            resolve a name with the DHCP DNS servers\r\n");
   printf("  ntp [sync]                NTP status, or request a synchronization\r\n");
@@ -448,6 +450,10 @@ static void console_Execute(char *line)
   else if (strcmp(argv[0], "info") == 0)
   {
     console_Info();
+  }
+  else if (strcmp(argv[0], "rtos") == 0)
+  {
+    Rtos_PrintStatus();
   }
   else if (strcmp(argv[0], "net") == 0)
   {
