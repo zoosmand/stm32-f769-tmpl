@@ -65,4 +65,10 @@ Core/.DS_Store
 # CMSIS and HAL drivers
 Drivers/
 Middlewares/
+!Middlewares/
+Middlewares/*
+!Middlewares/Third_Party/
+Middlewares/Third_Party/*
+!Middlewares/Third_Party/FreeRTOS-Kernel/
+!Middlewares/Third_Party/FreeRTOS-Kernel/**
 
